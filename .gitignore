@@ -1,0 +1,17 @@
+.vscode
+.DS_Store
+
+node_modules
+cache
+artifacts
+types
+deployments
+
+package-lock.json
+
+lib
+
+#hydra-s1.wasm
+#hydra-s1.zkey
+
+build

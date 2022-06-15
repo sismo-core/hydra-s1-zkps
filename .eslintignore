@@ -1,0 +1,10 @@
+node_modules
+cache
+artifacts
+types/**
+lib
+hydra-s1.wasm
+hydra-s1.zkey
+HydraS1Verifier.sol
+build
+hydra-s1_verification_key.json

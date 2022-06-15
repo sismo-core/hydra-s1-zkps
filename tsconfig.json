@@ -1,0 +1,21 @@
+
+{
+  "compilerOptions": {
+    "target": "es5",
+    "module": "commonjs",
+    "strict": true,
+    "esModuleInterop": true,
+    "declaration": true,
+    "skipLibCheck": true,
+    "resolveJsonModule": true,
+    "noImplicitAny": false,
+    "sourceMap": true,
+    "baseUrl": ".",
+  },
+  "exclude": [
+    "node_modules",
+    "artifacts",
+    "cache",
+    "types"
+  ]
+}
