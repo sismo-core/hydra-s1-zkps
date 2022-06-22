@@ -63,6 +63,7 @@
     ]
   },
   "dependencies": {
-    "@sismo-core/commitment-mapper-tester-js": "^1.0.10"
+    "@sismo-core/commitment-mapper-tester-js": "^1.0.10",
+    "@sismo-core/kv-merkle-tree": "^1.0.4"
   }
 }
