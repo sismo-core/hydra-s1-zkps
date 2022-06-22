@@ -98,12 +98,10 @@ template hydraS1(registryTreeHeight, accountsTreeHeight) {
 
   // Verify claimed value validity
   // Prevent overflow of comparator range
-  component sourceInRange = compconstant(2**252);
+  component sourceInRange = Is252Bits();
   sourceInRange.in <== sourceValue;
-  sourceInRange.out === 1;
-  component claimedInRange = compconstant(2**252);
+  component claimedInRange = Is252Bits();
   claimedInRange.in <== claimedValue;
-  claimedInRange.out === 1;
   // 0 <= claimedValue <= sourceValue
   component leq = LessEqThan(252);
   leq.in[0] <== claimedValue;
@@ -132,6 +130,21 @@ template hydraS1(registryTreeHeight, accountsTreeHeight) {
   // Square serve to avoid removing by the compilator optimizer
   signal chainIdSquare;
   chainIdSquare <== chainId * chainId;
+}
+
+// Verifies that a number is less than 2^252
+template Is252Bits() {
+  signal input in;
+
+  component bits = Num2Bits(254);
+  bits.in <== in;
+
+  component compare = CompConstant(2**252);
+  for (var i=0; i<254; i++) {
+    compare.in[i] <== bits.out[i];
+  }
+
+  compare.out === 0;
 }
 
 component main {public [commitmentMapperPubKey, registryTreeRoot, ticketIdentifier, userTicket, destinationIdentifier, claimedValue, chainId, accountsTreeValue, isStrict]} = hydraS1(20,20);
