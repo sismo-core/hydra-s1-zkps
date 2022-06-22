@@ -1,5 +1,6 @@
 pragma circom 2.0.0;
 
+include "../node_modules/circomlib/circuits/compconstant.circom";
 include "../node_modules/circomlib/circuits/comparators.circom";
 include "../node_modules/circomlib/circuits/poseidon.circom";
 include "../node_modules/circomlib/circuits/bitify.circom";
@@ -96,6 +97,13 @@ template hydraS1(registryTreeHeight, accountsTreeHeight) {
   }
 
   // Verify claimed value validity
+  // Prevent overflow of comparator range
+  component sourceInRange = compconstant(2**252);
+  sourceInRange.in <== sourceValue;
+  sourceInRange.out === 1;
+  component claimedInRange = compconstant(2**252);
+  claimedInRange.in <== claimedValue;
+  claimedInRange.out === 1;
   // 0 <= claimedValue <= sourceValue
   component leq = LessEqThan(252);
   leq.in[0] <== claimedValue;
