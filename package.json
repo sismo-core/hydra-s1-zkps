@@ -7,6 +7,7 @@
   "license": "MIT",
   "private": true,
   "scripts": {
+    "prepare": "husky install && cd ./package && yarn",
     "build": "yarn clean && yarn install && yarn compile-circuits && yarn generate-contract && yarn compile-contracts && cd package && yarn && yarn build",
     "generate-contract": "./scripts/generate-contract.sh hydra-s1",
     "compile-circuits": "./scripts/compile-circuit.sh hydra-s1",
@@ -17,7 +18,6 @@
     "test:verifier-contract": "hardhat test ./test/verifier-contract.test",
     "test:prover-js": "hardhat test ./test/prover.test",
     "clean": "./scripts/clean.sh",
-    "prepare": "husky install",
     "prettier": "prettier --write packages/**/*.ts test/**/*.ts tasks/**/*.ts",
     "lint": "eslint packages/**/*.ts test/**/*.ts --max-warnings=0"
   },
