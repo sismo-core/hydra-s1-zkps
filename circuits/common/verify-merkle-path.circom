@@ -18,7 +18,7 @@ template PositionSwitcher() {
 }
 
 
-// Verifies that merkle path is correct for given merkle root and a leaf
+// Verifies that merkle path is correct for a given merkle root and leaf
 // pathIndices input is an array of 0/1 selectors telling whether given 
 // pathElement is on the left or right side of merkle path
 template VerifyMerklePath(levels) {

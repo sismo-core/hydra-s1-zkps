@@ -14,7 +14,7 @@ template VerifyHydraCommitment() {
   signal input commitmentMapperPubKey[2];
   signal input commitmentReceipt[3];
 
-  // Verify that the user have the right commitment secret
+  // Verify that the user has the right commitment secret
   // This is a Proof Of Commitment Ownership
   component commitment = Poseidon(1);
   commitment.inputs[0] <== secret;
