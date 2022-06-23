@@ -1,9 +1,12 @@
 pragma circom 2.0.0;
 
+include "../node_modules/circomlib/circuits/compconstant.circom";
+include "../node_modules/circomlib/circuits/comparators.circom";
 include "../node_modules/circomlib/circuits/poseidon.circom";
 include "../node_modules/circomlib/circuits/bitify.circom";
 include "../node_modules/circomlib/circuits/mux1.circom";
 include "../node_modules/circomlib/circuits/babyjub.circom";
+
 include "./common/verify-merkle-path.circom";
 include "./common/verify-hydra-commitment.circom";
 
@@ -94,13 +97,19 @@ template hydraS1(registryTreeHeight, accountsTreeHeight) {
   }
 
   // Verify claimed value validity
+  // Prevent overflow of comparator range
+  component sourceInRange = Num2Bits(252);
+  sourceInRange.in <== sourceValue;
+  component claimedInRange = Num2Bits(252);
+  claimedInRange.in <== claimedValue;
+  // 0 <= claimedValue <= sourceValue
+  component leq = LessEqThan(252);
+  leq.in[0] <== claimedValue;
+  leq.in[1] <== sourceValue;
+  leq.out === 1;
   // If isStrict == 1 then claimedValue == sourceValue
-  // If isStrict == 0 then 0 <= claimedValue <= sourceValue
-  assert(claimedValue<=sourceValue);
   0 === (isStrict-1)*isStrict;
-  component iszero = IsZero();
-  iszero.in <== isStrict;
-  sourceValue === claimedValue+((sourceValue-claimedValue)*iszero.out);
+  sourceValue === sourceValue+((claimedValue-sourceValue)*isStrict);
 
   // Verify the userTicket is valid
   // compute the sourceSecretHash using the hash of the sourceSecret
