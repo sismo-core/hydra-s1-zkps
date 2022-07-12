@@ -68,6 +68,10 @@ export class HydraS1Prover {
       source.identifier.toHexString(),
       20
     );
+    const zeroPaddedAccountsTree = ethers.utils.hexZeroPad(
+      accountsTree.getRoot().toHexString(),
+      32
+    );
 
     const poseidon = await buildPoseidon();
 
@@ -77,10 +81,10 @@ export class HydraS1Prover {
     const sourceValue = accountsTree.getValue(zeroPaddedSourceIdentifier);
 
     const registryMerklePath = this.registryTree.getMerklePathFromKey(
-      accountsTree.getRoot().toHexString()
+      zeroPaddedAccountsTree
     );
     const accountsTreeValue = this.registryTree.getValue(
-      accountsTree.getRoot().toHexString()
+      zeroPaddedAccountsTree
     );
 
     const sourceSecretHash = poseidon([source.secret, 1]);
@@ -150,9 +154,13 @@ export class HydraS1Prover {
       source.identifier.toHexString(),
       20
     );
+    const zeroPaddedAccountsTree = ethers.utils.hexZeroPad(
+      accountsTree.getRoot().toHexString(),
+      32
+    );
 
     try {
-      this.registryTree.getValue(accountsTree.getRoot().toHexString());
+      this.registryTree.getValue(zeroPaddedAccountsTree);
     } catch (e) {
       throw new Error("Accounts tree root not found in the Registry tree");
     }
