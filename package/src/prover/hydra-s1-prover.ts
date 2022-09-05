@@ -68,10 +68,6 @@ export class HydraS1Prover {
       source.identifier.toHexString(),
       20
     );
-    const zeroPaddedAccountsTree = ethers.utils.hexZeroPad(
-      accountsTree.getRoot().toHexString(),
-      32
-    );
 
     const poseidon = await buildPoseidon();
 
@@ -81,10 +77,10 @@ export class HydraS1Prover {
     const sourceValue = accountsTree.getValue(zeroPaddedSourceIdentifier);
 
     const registryMerklePath = this.registryTree.getMerklePathFromKey(
-      zeroPaddedAccountsTree
+      accountsTree.getRoot().toHexString()
     );
     const accountsTreeValue = this.registryTree.getValue(
-      zeroPaddedAccountsTree
+      accountsTree.getRoot().toHexString()
     );
 
     const sourceSecretHash = poseidon([source.secret, 1]);
@@ -154,13 +150,9 @@ export class HydraS1Prover {
       source.identifier.toHexString(),
       20
     );
-    const zeroPaddedAccountsTree = ethers.utils.hexZeroPad(
-      accountsTree.getRoot().toHexString(),
-      32
-    );
 
     try {
-      this.registryTree.getValue(zeroPaddedAccountsTree);
+      this.registryTree.getValue(accountsTree.getRoot().toHexString());
     } catch (e) {
       throw new Error("Accounts tree root not found in the Registry tree");
     }
@@ -251,26 +243,6 @@ export class HydraS1Prover {
         "Claimed value overflow the snark field, please use claimed value inside the snark field"
       );
     }
-  }
-
-  public async test(inputs): Promise<SnarkProof> {
-    let files;
-    if (process.env.MODULE_FORMAT == "esm" && this.esmOverrideCircuitPath) {
-      files = this.esmOverrideCircuitPath;
-    } else {
-      files = {
-        zkeyPath,
-        wasmPath,
-      };
-    }
-
-    const { proof, publicSignals } = await groth16.fullProve(
-      { ...inputs },
-      files.wasmPath,
-      files.zkeyPath
-    );
-
-    return new SnarkProof(publicSignals, proof);
   }
 
   public async generateSnarkProof({
