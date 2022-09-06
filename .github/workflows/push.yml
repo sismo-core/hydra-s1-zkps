@@ -19,6 +19,7 @@ jobs:
       - run: yarn install --frozen-lockfile
       - name: Install circom
         run: git clone https://github.com/iden3/circom.git
+      - run: cd circom && git checkout v2.0.4
       - run: cd circom && cargo build --release
       - run: cd circom && cargo install --path circom
       - run: yarn compile-circuits
