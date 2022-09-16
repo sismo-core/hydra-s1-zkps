@@ -187,7 +187,6 @@ export class HydraS1Prover {
     try {
       sourceValue = accountsTree
         .getValue(zeroPaddedSourceIdentifier)
-        .toNumber();
     } catch (e) {
       throw new Error(
         `Could not find the source ${zeroPaddedSourceIdentifier} in the Accounts tree`
