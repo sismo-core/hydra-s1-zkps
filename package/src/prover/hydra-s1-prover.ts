@@ -27,7 +27,7 @@ type UserParams = {
   claimedValue: BigNumberish;
   chainId: BigNumberish;
   accountsTree: KVMerkleTree;
-  ticketIdentifier: BigNumberish;
+  externalNullifier: BigNumberish;
   isStrict: boolean;
 };
 
@@ -52,7 +52,7 @@ export class HydraS1Prover {
     claimedValue,
     chainId,
     accountsTree,
-    ticketIdentifier,
+    externalNullifier,
     isStrict,
   }: UserParams): Promise<Inputs> {
     source.identifier = BigNumber.from(source.identifier);
@@ -61,7 +61,7 @@ export class HydraS1Prover {
     destination.secret = BigNumber.from(destination.secret);
 
     claimedValue = BigNumber.from(claimedValue);
-    ticketIdentifier = BigNumber.from(ticketIdentifier);
+    externalNullifier = BigNumber.from(externalNullifier);
     chainId = BigNumber.from(chainId);
 
     const zeroPaddedSourceIdentifier = ethers.utils.hexZeroPad(
@@ -84,7 +84,7 @@ export class HydraS1Prover {
     );
 
     const sourceSecretHash = poseidon([source.secret, 1]);
-    const userTicket = poseidon([sourceSecretHash, ticketIdentifier]);
+    const nullifier = poseidon([sourceSecretHash, externalNullifier]);
 
     const privateInputs: PrivateInputs = {
       sourceIdentifier: source.identifier.toBigInt(),
@@ -115,8 +115,8 @@ export class HydraS1Prover {
         el.toBigInt()
       ),
       registryTreeRoot: this.registryTree.getRoot().toBigInt(),
-      ticketIdentifier: ticketIdentifier.toBigInt(),
-      userTicket: userTicket.toBigInt(),
+      externalNullifier: externalNullifier.toBigInt(),
+      nullifier: nullifier.toBigInt(),
       claimedValue: claimedValue.toBigInt(),
       accountsTreeValue: accountsTreeValue.toBigInt(),
       isStrict: isStrict ? 1 : 0,
@@ -134,7 +134,7 @@ export class HydraS1Prover {
     claimedValue,
     chainId,
     accountsTree,
-    ticketIdentifier,
+    externalNullifier,
     isStrict,
   }: UserParams) {
     source.identifier = BigNumber.from(source.identifier);
@@ -143,7 +143,7 @@ export class HydraS1Prover {
     destination.secret = BigNumber.from(destination.secret);
 
     claimedValue = BigNumber.from(claimedValue);
-    ticketIdentifier = BigNumber.from(ticketIdentifier);
+    externalNullifier = BigNumber.from(externalNullifier);
     chainId = BigNumber.from(chainId);
 
     const zeroPaddedSourceIdentifier = ethers.utils.hexZeroPad(
@@ -212,7 +212,7 @@ export class HydraS1Prover {
     }
 
     const SnarkField = BigNumber.from(SNARK_FIELD);
-    if (ticketIdentifier.gt(SnarkField)) {
+    if (externalNullifier.gt(SnarkField)) {
       throw new Error(
         "External nullifier overflow the snark field, please use external nullifier inside the snark field"
       );
@@ -250,7 +250,7 @@ export class HydraS1Prover {
     claimedValue,
     chainId,
     accountsTree,
-    ticketIdentifier,
+    externalNullifier,
     isStrict,
   }: UserParams): Promise<SnarkProof> {
     await this.userParamsValidation({
@@ -259,7 +259,7 @@ export class HydraS1Prover {
       claimedValue,
       chainId,
       accountsTree,
-      ticketIdentifier,
+      externalNullifier,
       isStrict,
     });
 
@@ -269,7 +269,7 @@ export class HydraS1Prover {
       claimedValue,
       chainId,
       accountsTree,
-      ticketIdentifier,
+      externalNullifier,
       isStrict,
     });
 

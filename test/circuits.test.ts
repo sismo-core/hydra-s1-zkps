@@ -12,7 +12,7 @@ describe("Hydra S1 Circuits", () => {
   let commitmentMapperTester: CommitmentMapperTester; 
   let accounts: HydraS1Account[];
   let circuitTester: WasmTester;
-  let ticketIdentifier: BigNumber;
+  let externalNullifier: BigNumber;
   let registryTree: KVMerkleTree;
   let poseidon: Poseidon;
   let inputs: PublicInputs & PrivateInputs;
@@ -29,9 +29,7 @@ describe("Hydra S1 Circuits", () => {
   before(async () => {
     poseidon = await buildPoseidon();
     commitmentMapperTester = await CommitmentMapperTester.generate();
-
     const signers = await hre.ethers.getSigners();
-
     accounts = [];
 
     for(let i = 0; i < 10; i++) {
@@ -46,9 +44,8 @@ describe("Hydra S1 Circuits", () => {
           commitmentReceipt
         })
     }
-
     circuitTester = await wasm(path.join(__dirname, "../circuits", "hydra-s1.circom"));
-    ticketIdentifier = BigNumber.from(123);
+    externalNullifier = BigNumber.from(123);
 
     merkleTreeData1 = {
       [BigNumber.from(accounts[0].identifier).toHexString()]: 4,
@@ -75,6 +72,7 @@ describe("Hydra S1 Circuits", () => {
       registryTree,
       await commitmentMapperTester.getPubKey()
     ); 
+    console.log("prover ok")
 
     host = parseInt(await hre.getChainId());
 
@@ -84,14 +82,14 @@ describe("Hydra S1 Circuits", () => {
     sourceValue = BigNumber.from(merkleTreeData1[BigNumber.from(source.identifier).toHexString()]);
   })
   describe("Generating proof", async () => {
-    it("Snark proof of simple value in a merkleTree with simple userTicket", async () => {
+    it("Snark proof of simple value in a merkleTree with simple nullifier", async () => {
       const { privateInputs, publicInputs } = await prover.generateInputs({
         source,
         destination,
         claimedValue: sourceValue,
         chainId: host,
         accountsTree: accountsTree1,
-        ticketIdentifier,
+        externalNullifier,
         isStrict: Boolean(registryTree.getValue(accountsTree1.getRoot().toHexString()).toNumber())
       });
       
@@ -123,7 +121,7 @@ describe("Hydra S1 Circuits", () => {
           claimedValue: BigNumber.from(1),
           chainId: host,
           accountsTree: accountsTree3,
-          ticketIdentifier,
+          externalNullifier,
           isStrict: true
         });
         
@@ -131,7 +129,7 @@ describe("Hydra S1 Circuits", () => {
   
         await circuitShouldFail(circuitTester, {
           ...inputs3,
-        }, "Constraint doesn't match");
+        }, "Not enough values for input signal accountMerklePathElements");
       });
 
       it("Should throw when using an Registry Merkle tree with wrong height", async () => {
@@ -151,7 +149,7 @@ describe("Hydra S1 Circuits", () => {
           claimedValue: BigNumber.from(1),
           chainId: host,
           accountsTree: accountsTree1,
-          ticketIdentifier,
+          externalNullifier,
           isStrict: true
         });
         
@@ -159,7 +157,7 @@ describe("Hydra S1 Circuits", () => {
   
         await circuitShouldFail(circuitTester, {
           ...inputs3,
-        }, "Constraint doesn't match");
+        }, "Not enough values for input signal registryMerklePathElements");
       });
     });
 
@@ -168,21 +166,21 @@ describe("Hydra S1 Circuits", () => {
         await circuitShouldFail(circuitTester, {
           ...inputs,
           ...{ sourceIdentifier: BigNumber.from(accounts[1].identifier).toBigInt() }
-        }, "Error: Assert Failed. Error in template ForceEqualIfEnabled");
+        }, "Error: Assert Failed.\nError in template ForceEqualIfEnabled");
       })
 
       it("Should throw with wrong sourceSecret", async () => {
         await circuitShouldFail(circuitTester, {
           ...inputs,
           ...{ sourceSecret: BigNumber.from(123).toBigInt() }
-        }, "Error: Assert Failed. Error in template ForceEqualIfEnabled");
+        }, "Error: Assert Failed.\nError in template ForceEqualIfEnabled");
       })
 
       it("Should throw with wrong sourceCommitmentReceipt", async () => {
         await circuitShouldFail(circuitTester, {
           ...inputs,
           ...{ sourceCommitmentReceipt: [BigNumber.from(1).toBigInt(),BigNumber.from(2).toBigInt(),BigNumber.from(3).toBigInt()] }
-        }, "Error: Assert Failed. Error in template ForceEqualIfEnabled");
+        }, "Error: Assert Failed.\nError in template ForceEqualIfEnabled");
       })
     });
 
@@ -192,28 +190,28 @@ describe("Hydra S1 Circuits", () => {
         await circuitShouldFail(circuitTester, {
           ...inputs,
           ...{ destinationIdentifier: BigNumber.from(accounts[5].identifier).toBigInt() }
-        }, "Error: Assert Failed. Error in template ForceEqualIfEnabled");
+        }, "Error: Assert Failed.\nError in template ForceEqualIfEnabled");
       })
 
       it("Should throw with wrong destinationSecret", async () => {
         await circuitShouldFail(circuitTester, {
           ...inputs,
           ...{ destinationSecret: BigNumber.from(123).toBigInt() }
-        }, "Error: Assert Failed. Error in template ForceEqualIfEnabled");
+        }, "Error: Assert Failed.\nError in template ForceEqualIfEnabled");
       })
 
       it("Should throw with wrong destinationCommitmentReceipt", async () => {
         await circuitShouldFail(circuitTester, {
           ...inputs,
           ...{ destinationCommitmentReceipt: [BigNumber.from(1).toBigInt(),BigNumber.from(2).toBigInt(),BigNumber.from(3).toBigInt()] }
-        }, "Error: Assert Failed. Error in template ForceEqualIfEnabled");
+        }, "Error: Assert Failed.\nError in template ForceEqualIfEnabled");
       })
 
       it("Should throw with wrong commitmentMapperPubKey", async () => {
         await circuitShouldFail(circuitTester, {
           ...inputs,
           ...{ commitmentMapperPubKey: [BigNumber.from(1).toBigInt(),BigNumber.from(2).toBigInt()] }
-        }, "Error: Assert Failed. Error in template ForceEqualIfEnabled");
+        }, "Error: Assert Failed.\nError in template ForceEqualIfEnabled");
       })
     });
 
@@ -225,7 +223,7 @@ describe("Hydra S1 Circuits", () => {
           ...{
             registryTreeRoot: registryTree.getRoot().add(1).toBigInt(),
           }
-        }, "Error: Assert Failed. Error in template VerifyMerklePath");
+        }, "Error: Assert Failed.\nError in template ForceEqualIfEnabled");
       })
 
       it("Should verify the accountsTreeRoot constraint along the global sismo merkle tree", async () => {
@@ -234,7 +232,7 @@ describe("Hydra S1 Circuits", () => {
           ...{
             registryMerklePathElements: inputs.registryMerklePathElements.slice().reverse(),
           }
-        }, "Error: Assert Failed. Error in template VerifyMerklePath");
+        }, "Error: Assert Failed.\nError in template ForceEqualIfEnabled");
       })
     });
 
@@ -243,7 +241,7 @@ describe("Hydra S1 Circuits", () => {
         await circuitShouldFail(circuitTester, {
           ...inputs,
           ...{ accountsTreeRoot: BigNumber.from(123).toBigInt() } // changing only the merkle Root
-        }, "Error: Assert Failed. Error in template VerifyMerklePath");
+        }, "Error: Assert Failed.\nError in template ForceEqualIfEnabled");
       });
 
       it("Should throw when using a bad Merkle path", async () => {
@@ -252,14 +250,14 @@ describe("Hydra S1 Circuits", () => {
         await circuitShouldFail(circuitTester, {
           ...inputs,
           ...{ accountMerklePathElements:  wrongAccountMerklePathElements}
-        }, "Error: Assert Failed. Error in template VerifyMerklePath");
+        }, "Error: Assert Failed.\nError in template ForceEqualIfEnabled");
         const wrongAccountMerklePathIndices = [...inputs.accountMerklePathIndices];
         wrongAccountMerklePathIndices[0] = 1;
         wrongAccountMerklePathIndices[1] = 0;
         await circuitShouldFail(circuitTester, {
           ...inputs,
           ...{ accountMerklePathIndices: wrongAccountMerklePathIndices }
-        }, "Error: Assert Failed. Error in template VerifyMerklePath");
+        }, "Error: Assert Failed.\nError in template ForceEqualIfEnabled");
       });
 
       it("Should throw when using a good Merkle path but for an other source address than the specified one", async () => {
@@ -269,7 +267,7 @@ describe("Hydra S1 Circuits", () => {
           ...inputs,
           accountMerklePathElements: externalDataMerklePathSource2.elements.map(el => el.toBigInt()),
           accountMerklePathIndices: externalDataMerklePathSource2.indices
-        }, "Error: Assert Failed. Error in template VerifyMerklePath");
+        }, "Error: Assert Failed.\nError in template ForceEqualIfEnabled");
       });
     });
 
@@ -281,7 +279,7 @@ describe("Hydra S1 Circuits", () => {
             ...{ 
               isStrict: -5 as any // Must force any to bypass typescript error
             } 
-        }, "Error: Assert Failed. Error in template hydraS1");
+        }, "Error: Assert Failed.\nError in template ForceEqualIfEnabled");
       });
 
       it("Should throw when using isStrict > 1", async () => {
@@ -290,14 +288,14 @@ describe("Hydra S1 Circuits", () => {
             ...{ 
               isStrict: 2 as any // Must force any to bypass typescript error
             } 
-        }, "Error: Assert Failed. Error in template hydraS1");
+        }, "Error: Assert Failed.\nError in template ForceEqualIfEnabled");
       });
 
       it("Should throw when using a value superior of the Merkle tree value for isStrict == 1", async () => {
         await circuitShouldFail(circuitTester, {
           ...inputs,
           ...{ claimedValue: BigNumber.from(5).toBigInt() } // the good one is value: 4
-        }, "Error: Assert Failed. Error in template hydraS1");
+        }, "Error: Assert Failed.\nError in template ForceEqualIfEnabled");
       });
 
       it("Should throw when using a value superior of the Merkle tree value for isStrict == 0", async () => {
@@ -307,14 +305,14 @@ describe("Hydra S1 Circuits", () => {
             claimedValue: BigNumber.from(5).toBigInt(),
             isStrict: 0
           } // the good one is value: 4
-        }, "Error: Assert Failed. Error in template hydraS1");
+        }, "Error: Assert Failed.\nError in template ForceEqualIfEnabled");
       });
 
       it("Should throw when using negative value for isStrict == 1", async () => {
         await circuitShouldFail(circuitTester, {
           ...inputs,
           ...{ claimedValue: BigNumber.from(-5).toBigInt() } // the good one is value: 4
-        }, "Error: Assert Failed. Error in template hydraS1");
+        }, "Error: Assert Failed.\nError in template ForceEqualIfEnabled");
       });
 
       it("Should throw when using negative value for isStrict == 0", async () => {
@@ -324,14 +322,14 @@ describe("Hydra S1 Circuits", () => {
             claimedValue: BigNumber.from(-5).toBigInt() ,
             isStrict: 0
           } // the good one is value: 4
-        }, "Error: Assert Failed. Error in template hydraS1");
+        }, "Error: Assert Failed.\nError in template ForceEqualIfEnabled");
       });
       
       it("Should throw when using a value inferior of the Merkle tree value for isStrict == 1", async () => {
         await circuitShouldFail(circuitTester, {
           ...inputs,
           ...{ claimedValue: BigNumber.from(3).toBigInt() } // the good one is value: 4
-        }, "Error: Assert Failed. Error in template hydraS1");
+        }, "Error: Assert Failed.\nError in template ForceEqualIfEnabled");
       });
 
       it("Should generate a Snark proof when using a value inferior of the Merkle tree value for isStrict == 0", async () => {
@@ -346,19 +344,19 @@ describe("Hydra S1 Circuits", () => {
       });
     });
 
-    describe("Verify userTicket validity", async () => {
-      it("Should throw when the ticketIdentifier does not corresponds to the userTicket ", async () => {
+    describe("Verify nullifier validity", async () => {
+      it("Should throw when the externalNullifier does not corresponds to the nullifier ", async () => {
         await circuitShouldFail(circuitTester, {
           ...inputs,
-          ...{ ticketIdentifier: BigNumber.from(456).toBigInt() }  // good one is 123
-        }, "Error: Assert Failed. Error in template hydraS1");
+          ...{ externalNullifier: BigNumber.from(456).toBigInt() }  // good one is 123
+        }, "Error: Assert Failed.\nError in template ForceEqualIfEnabled");
       });
 
-      it("Should throw when the userTicket does not corresponds to the ticketIdentifier and sourceNullifier", async () => {
+      it("Should throw when the nullifier does not corresponds to the externalNullifier and sourceNullifier", async () => {
         await circuitShouldFail(circuitTester, {
           ...inputs,
-          ...{ userTicket: BigNumber.from(789).toBigInt() }
-        }, "Error: Assert Failed. Error in template hydraS1");
+          ...{ nullifier: BigNumber.from(789).toBigInt() }
+        }, "Error: Assert Failed.\nError in template ForceEqualIfEnabled");
       });
     });
 })

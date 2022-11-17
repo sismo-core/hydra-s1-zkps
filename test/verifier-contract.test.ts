@@ -9,7 +9,7 @@ import { CommitmentMapperTester, getOwnershipMsg } from "@sismo-core/commitment-
 describe("Hydra S1 Verifier contract", () => {
   let commitmentMapperTester: CommitmentMapperTester; 
   let accounts: HydraS1Account[];
-  let ticketIdentifier: BigNumber;
+  let externalNullifier: BigNumber;
   let hydraS1VerifierContract: HydraS1Verifier;
   let proof: SnarkProof;
   let registryTree: KVMerkleTree;
@@ -39,7 +39,7 @@ describe("Hydra S1 Verifier contract", () => {
         })
     }
 
-    ticketIdentifier = BigNumber.from(123);
+    externalNullifier = BigNumber.from(123);
 
     merkleTreeData = {
       [BigNumber.from(accounts[0].identifier).toHexString()]: 1,
@@ -81,7 +81,7 @@ describe("Hydra S1 Verifier contract", () => {
       claimedValue,
       chainId: parseInt(await hre.getChainId()),
       accountsTree: accountsTree,
-      ticketIdentifier,
+      externalNullifier,
       isStrict: Boolean(registryTree.getValue(accountsTree.getRoot().toHexString()).toNumber())
     });
   })

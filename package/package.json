@@ -24,7 +24,7 @@
   "dependencies": {
     "@sismo-core/crypto": "^1.1.4",
     "@sismo-core/kv-merkle-tree": "^1.0.4",
-    "snarkjs": "^0.4.16"
+    "snarkjs": "^0.5.0"
   },
   "publishConfig": {
     "access": "public"

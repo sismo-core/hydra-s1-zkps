@@ -21,7 +21,7 @@ import {
 describe("Hydra S1 Prover", () => {
   let commitmentMapperTester: CommitmentMapperTester;
   let accounts: HydraS1Account[];
-  let ticketIdentifier: BigNumber;
+  let externalNullifier: BigNumber;
   let registryTree: KVMerkleTree;
   let poseidon: Poseidon;
   let accountsTree1: KVMerkleTree;
@@ -60,7 +60,7 @@ describe("Hydra S1 Prover", () => {
       });
     }
 
-    ticketIdentifier = BigNumber.from(123);
+    externalNullifier = BigNumber.from(123);
 
     merkleTreeData1 = {
       [BigNumber.from(accounts[0].identifier).toHexString()]: 4,
@@ -113,7 +113,7 @@ describe("Hydra S1 Prover", () => {
       claimedValue: sourceValue,
       chainId: host,
       accountsTree: accountsTree1,
-      ticketIdentifier,
+      externalNullifier,
       isStrict: Boolean(
         registryTree.getValue(accountsTree1.getRoot().toHexString()).toNumber()
       ),
@@ -144,7 +144,7 @@ describe("Hydra S1 Prover", () => {
         ],
       chainId: host,
       accountsTree: accountsTree1,
-      ticketIdentifier,
+      externalNullifier,
       isStrict: Boolean(
         registryTree.getValue(accountsTree1.getRoot().toHexString()).toNumber()
       ),
@@ -193,7 +193,7 @@ describe("Hydra S1 Prover", () => {
         claimedValue: sourceValue,
         chainId: host,
         accountsTree: accountsTree2,
-        ticketIdentifier,
+        externalNullifier,
         isStrict: Boolean(
           registryTree
             .getValue(accountsTree1.getRoot().toHexString())
@@ -225,7 +225,7 @@ describe("Hydra S1 Prover", () => {
         claimedValue: sourceValue,
         chainId: host,
         accountsTree: accountsTree1,
-        ticketIdentifier,
+        externalNullifier,
         isStrict: Boolean(
           registryTree
             .getValue(accountsTree1.getRoot().toHexString())
@@ -238,7 +238,7 @@ describe("Hydra S1 Prover", () => {
   });
 
   it("Should throw when the external nullifier overflow the snark field", async () => {
-    const ticketIdentifierOverflow =
+    const externalNullifierOverflow =
       "0x48c8947f69c054a5caa934674ce8881d02bb18fb59d5a63eeaddff735b0e9801e87294783281ae49fc8287a0fd86779b27d7972d3e84f0fa0d826d7cb67dfefc";
     try {
       await prover.generateSnarkProof({
@@ -247,7 +247,7 @@ describe("Hydra S1 Prover", () => {
         claimedValue: sourceValue,
         chainId: host,
         accountsTree: accountsTree1,
-        ticketIdentifier: ticketIdentifierOverflow,
+        externalNullifier: externalNullifierOverflow,
         isStrict: Boolean(
           registryTree
             .getValue(accountsTree1.getRoot().toHexString())
@@ -272,7 +272,7 @@ describe("Hydra S1 Prover", () => {
         claimedValue: sourceValue,
         chainId: host,
         accountsTree: accountsTree1,
-        ticketIdentifier,
+        externalNullifier,
         isStrict: Boolean(
           registryTree
             .getValue(accountsTree1.getRoot().toHexString())
@@ -299,7 +299,7 @@ describe("Hydra S1 Prover", () => {
         claimedValue: sourceValue,
         chainId: host,
         accountsTree: accountsTree1,
-        ticketIdentifier,
+        externalNullifier,
         isStrict: Boolean(
           registryTree
             .getValue(accountsTree1.getRoot().toHexString())
@@ -322,7 +322,7 @@ describe("Hydra S1 Prover", () => {
         claimedValue: sourceValue,
         chainId: host,
         accountsTree: accountsTree1,
-        ticketIdentifier,
+        externalNullifier,
         isStrict: Boolean(
           registryTree
             .getValue(accountsTree1.getRoot().toHexString())
@@ -349,7 +349,7 @@ describe("Hydra S1 Prover", () => {
         claimedValue: sourceValue,
         chainId: host,
         accountsTree: accountsTree1,
-        ticketIdentifier,
+        externalNullifier,
         isStrict: Boolean(
           registryTree
             .getValue(accountsTree1.getRoot().toHexString())
@@ -369,7 +369,7 @@ describe("Hydra S1 Prover", () => {
         claimedValue: BigNumber.from(10),
         chainId: host,
         accountsTree: accountsTree1,
-        ticketIdentifier,
+        externalNullifier,
         isStrict: Boolean(
           registryTree
             .getValue(accountsTree1.getRoot().toHexString())
@@ -393,7 +393,7 @@ describe("Hydra S1 Prover", () => {
         claimedValue: BigNumber.from(3),
         chainId: host,
         accountsTree: accountsTree1,
-        ticketIdentifier,
+        externalNullifier,
         isStrict: Boolean(
           registryTree
             .getValue(accountsTree1.getRoot().toHexString())
@@ -417,7 +417,7 @@ describe("Hydra S1 Prover", () => {
         claimedValue: BigNumber.from(-3),
         chainId: host,
         accountsTree: accountsTree1,
-        ticketIdentifier,
+        externalNullifier,
         isStrict: false,
       });
     } catch (e: any) {
@@ -447,7 +447,7 @@ describe("Hydra S1 Prover", () => {
         claimedValue: BigNumber.from(4),
         chainId: host,
         accountsTree: accountsTree,
-        ticketIdentifier,
+        externalNullifier,
         isStrict: false,
       });
     } catch (e: any) {
@@ -466,7 +466,7 @@ describe("Hydra S1 Prover", () => {
         claimedValue: BigNumber.from(4),
         chainId: host,
         accountsTree: accountsTree1,
-        ticketIdentifier,
+        externalNullifier,
         isStrict: false,
       });
     } catch (e: any) {

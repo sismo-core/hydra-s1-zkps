@@ -93,7 +93,7 @@ const params = {
     selectedAccountValue,
     chainId,
     accountsTree,
-    ticketIdentifier,
+    externalNullifier,
     isStrictValue
 }
 
@@ -119,7 +119,7 @@ try {
 | selectedAccountValue | BigNumberish | Must be 0 <= selectedAccountValue <= accountValue if isStrict is false or selectedAccountValue = accountValue if isSTrict is true |
 | chainId | BigNumberish | Chain id |
 | accountsTree | MerkleTree | Merkle tree constitued which include the source and a value |
-| ticketIdentifier | BigNumberish | userTicket = hash((hash(source.secret, 1), ticketIdentifier) |
+| externalNullifier | BigNumberish | nullifier = hash((hash(source.secret, 1), externalNullifier) |
 | isStrictValue | boolean | Define if the value is strict or not |
 
 ``` javascript
@@ -194,7 +194,7 @@ const prover = new HydraS1Prover(
 const isStrictValue = true;
 const selectedAccountValue = BigNumber.from(merkleTreeData[sourceAddress]);
 const chainId = 1;
-const ticketIdentifier = BigNumber.from(123);
+const externalNullifier = BigNumber.from(123);
 
 const snarkProof: SnarkProof = await prover.generateSnarkProof({
     source,
@@ -202,7 +202,7 @@ const snarkProof: SnarkProof = await prover.generateSnarkProof({
     selectedAccountValue,
     chainId,
     accountsTree,
-    ticketIdentifier,
+    externalNullifier,
     isStrictValue
 });
 ``` 
