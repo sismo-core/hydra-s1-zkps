@@ -1,6 +1,6 @@
 {
   "name": "@sismo-core/hydra-s1",
-  "version": "1.0.5",
+  "version": "1.0.6",
   "description": "Hydra S1 Proving scheme",
   "license": "MIT",
   "author": "Sismo core",
@@ -8,8 +8,7 @@
   "module": "lib/esm/index.js",
   "types": "lib/index.d.ts",
   "scripts": {
-    "prepare": "./scripts/copy-wasm-zkey.sh",
-    "build": "rollup -c && ./scripts/copy-files-in-lib.sh"
+    "build": "rollup -c && ./scripts/copy-wasm-zkey.sh && ./scripts/copy-files-in-lib.sh"
   },
   "devDependencies": {
     "@rollup/plugin-commonjs": "^22.0.0",

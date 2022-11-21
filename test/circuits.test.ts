@@ -72,7 +72,6 @@ describe("Hydra S1 Circuits", () => {
       registryTree,
       await commitmentMapperTester.getPubKey()
     ); 
-    console.log("prover ok")
 
     host = parseInt(await hre.getChainId());
 
@@ -81,6 +80,7 @@ describe("Hydra S1 Circuits", () => {
 
     sourceValue = BigNumber.from(merkleTreeData1[BigNumber.from(source.identifier).toHexString()]);
   })
+  
   describe("Generating proof", async () => {
     it("Snark proof of simple value in a merkleTree with simple nullifier", async () => {
       const { privateInputs, publicInputs } = await prover.generateInputs({

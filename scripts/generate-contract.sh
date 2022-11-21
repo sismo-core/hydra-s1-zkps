@@ -1,6 +1,7 @@
 
 #!/bin/bash -e
 
+# Uncomment next lines to update Trusted setup
 # cd "$(git rev-parse --show-toplevel)"
 
 # npx snarkjs zkey export solidityverifier artifacts/circuits/$1.zkey package/contracts/HydraS1Verifier.sol
