@@ -11,7 +11,9 @@ fi
 circom circuits/$1.circom --verbose --r1cs --wasm --sym -o artifacts/circuits 
 
 npx snarkjs groth16 setup artifacts/circuits/$1.r1cs artifacts/circuits/ptau$POWERS_OF_TAU artifacts/circuits/tmp_$1.zkey
+
+# Uncomment next lines to update Trusted setup
 # npx snarkjs zkey contribute artifacts/circuits/tmp_$1.zkey artifacts/circuits/$1.zkey
-# npx snarkjs zkey export verificationkey artifacts/circuits/$1.zkey package/src/verifier/$1_verification_key.json
+# npx snarkjs zkey export verificationkey artifacts/circuits/$1.zkey package/src/verifier/$1-verification-key.json
 
 # npx snarkjs info -r artifacts/circuits/$1.r1cs

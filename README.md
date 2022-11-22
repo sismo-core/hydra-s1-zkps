@@ -34,7 +34,7 @@ Hydra-S1 enables users to prove from these groups:
 - Ownerships: They own two accounts, a source account and a destination account. (via Hydra Delegate Proof of Ownership)
 - Account inclusion: Their source account is part of a group (e.g group ENS DAO voters)
 - Account value: Their source account holds a specific value (e.g number of votes in the group of ENS DAO voters) 
-- Ticket Generation: They computed a ticket (a.k.a nullifierHash) from a ticket identifier (a.k.a externalNullifier). The ticket is deterministically generated from their source account and the ticket identifier. It can be stored by proof verifiers to only accept one ZK Proof per account per ticket identifier
+- Nullifier Generation: They computed a nullifier from an externalNullifier. The nullifier is deterministically generated from their source account and the externalNullifier. It can be stored by proof verifiers to only accept one ZK Proof per account per externalNullifier.
   
 Please make sure to read our documentation:
 -  [Hydra-S1 general documentation](https://hydra-s1.docs.sismo.io)

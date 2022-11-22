@@ -16,8 +16,8 @@ export type PublicInputs = {
   isStrict: 1 | 0;
   commitmentMapperPubKey: BigInt[];
   registryTreeRoot: BigInt;
-  ticketIdentifier: BigInt;
-  userTicket: BigInt;
+  externalNullifier: BigInt;
+  nullifier: BigInt;
   destinationIdentifier: BigInt;
   chainId: BigInt;
   accountsTreeValue: BigInt;

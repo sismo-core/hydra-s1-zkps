@@ -1,4 +1,4 @@
-pragma circom 2.0.0;
+pragma circom 2.1.2;
 
 include "../node_modules/circomlib/circuits/compconstant.circom";
 include "../node_modules/circomlib/circuits/comparators.circom";
@@ -32,8 +32,8 @@ template hydraS1(registryTreeHeight, accountsTreeHeight) {
   signal input chainId;
   signal input commitmentMapperPubKey[2];
   signal input registryTreeRoot;
-  signal input ticketIdentifier;
-  signal input userTicket;
+  signal input externalNullifier;
+  signal input nullifier;
   signal input claimedValue;
   signal input accountsTreeValue;
   signal input isStrict;
@@ -111,7 +111,7 @@ template hydraS1(registryTreeHeight, accountsTreeHeight) {
   0 === (isStrict-1)*isStrict;
   sourceValue === sourceValue+((claimedValue-sourceValue)*isStrict);
 
-  // Verify the userTicket is valid
+  // Verify the nullifier is valid
   // compute the sourceSecretHash using the hash of the sourceSecret
   signal sourceSecretHash; 
   component sourceSecretHasher = Poseidon(2);
@@ -119,17 +119,17 @@ template hydraS1(registryTreeHeight, accountsTreeHeight) {
   sourceSecretHasher.inputs[1] <== 1;  
   sourceSecretHash <== sourceSecretHasher.out; 
 
-  // Verify the userTicket is valid
-  // by hashing the sourceSecretHash and ticketIdentifier
+  // Verify the nullifier is valid
+  // by hashing the sourceSecretHash and externalNullifier
   // and verifying the result is equals
-  component userTicketHasher = Poseidon(2);
-  userTicketHasher.inputs[0] <== sourceSecretHash;
-  userTicketHasher.inputs[1] <== ticketIdentifier;
-  userTicketHasher.out === userTicket;
+  component nullifierHasher = Poseidon(2);
+  nullifierHasher.inputs[0] <== sourceSecretHash;
+  nullifierHasher.inputs[1] <== externalNullifier;
+  nullifierHasher.out === nullifier;
 
   // Square serve to avoid removing by the compilator optimizer
   signal chainIdSquare;
   chainIdSquare <== chainId * chainId;
 }
 
-component main {public [commitmentMapperPubKey, registryTreeRoot, ticketIdentifier, userTicket, destinationIdentifier, claimedValue, chainId, accountsTreeValue, isStrict]} = hydraS1(20,20);
+component main {public [commitmentMapperPubKey, registryTreeRoot, externalNullifier, nullifier, destinationIdentifier, claimedValue, chainId, accountsTreeValue, isStrict]} = hydraS1(20,20);

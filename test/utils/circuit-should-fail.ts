@@ -6,7 +6,7 @@ export const circuitShouldFail = async (
   circuitTester: WasmTester,
   inputs: PublicInputs & PrivateInputs,
   message: string,
-  log: boolean = false
+  log = false
 ) => {
   try {
     const w = await circuitTester.calculateWitness(inputs, true);
