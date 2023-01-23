@@ -90,11 +90,11 @@ const destination: HydraS1Account = {
 const params = {
     source,
     destination,
-    selectedAccountValue,
+    claimedValue,
     chainId,
     accountsTree,
     externalNullifier,
-    isStrictValue
+    isStrict
 }
 
 const snarkProof = await prover.generateSnarkProof(params);
@@ -116,11 +116,11 @@ try {
 | ---------- | -------------- | ------------- |
 | source | HydraS1Account | Source account |
 | destination | HydraS1Account | Destination account |
-| selectedAccountValue | BigNumberish | Must be 0 <= selectedAccountValue <= accountValue if isStrict is false or selectedAccountValue = accountValue if isSTrict is true |
+| claimedValue | BigNumberish | Must be 0 <= claimedValue <= accountValue if isStrict is false or claimedValue = accountValue if isStrict is true |
 | chainId | BigNumberish | Chain id |
-| accountsTree | MerkleTree | Merkle tree constitued which include the source and a value |
+| accountsTree | MerkleTree | Merkle tree constituted which include the source and a value |
 | externalNullifier | BigNumberish | nullifier = hash((hash(source.secret, 1), externalNullifier) |
-| isStrictValue | boolean | Define if the value is strict or not |
+| isStrict | boolean | Define if the value is strict or not |
 
 ``` javascript
 export type HydraS1Account = { 
@@ -191,19 +191,19 @@ const prover = new HydraS1Prover(
     await commitmentMapperTester.getPubKey()
 ); 
 
-const isStrictValue = true;
-const selectedAccountValue = BigNumber.from(merkleTreeData[sourceAddress]);
+const isStrict = true;
+const claimedValue = BigNumber.from(merkleTreeData[sourceAddress]);
 const chainId = 1;
 const externalNullifier = BigNumber.from(123);
 
 const snarkProof: SnarkProof = await prover.generateSnarkProof({
     source,
     destination,
-    selectedAccountValue,
+    claimedValue,
     chainId,
     accountsTree,
     externalNullifier,
-    isStrictValue
+    isStrict
 });
 ``` 
 
