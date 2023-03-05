@@ -81,20 +81,28 @@ const source: HydraS1Account = {
     commitmentReceipt
 }
 
-const destination: HydraS1Account = {
+const destination: DestinationInput = {
     identifier: address,
     secret,
-    commitmentReceipt
+    commitmentReceipt,
+    chainId: 1,
+}
+
+const statement: StatementInput = {
+    value?: BigNumberish;
+    // A comparator of 0 means the accounts value in the tree can be more than the value in the statement
+    // A comparator of 1 means the accounts value in the tree must be equal to the value in the statement
+    comparator?: number;
+    registryTree: KVMerkleTree;
+    accountsTree: KVMerkleTree;
 }
 
 const params = {
+    vault,
     source,
     destination,
-    statementValue,
-    chainId,
-    accountsTree,
-    requestIdentifier,
-    statementComparator
+    statement,
+    requestIdentifier
 }
 
 const snarkProof = await prover.generateSnarkProof(params);
@@ -129,83 +137,6 @@ export type HydraS1Account = {
   commitmentReceipt: [BigNumberish, BigNumberish, BigNumberish]
 };
 ```
-
-### Complete test example
-
-``` javascript
-import { CommitmentMapperTester, OWNERSHIP_SIGNATURE_MESSAGE } from "@sismo-core/commitment-mapper-tester-js"; 
-import { SnarkProof, REGISTRY_TREE_HEIGHT, HydraS1Prover, HydraS1Account, buildPoseidon, MerkleTree, MerkleTreeData } from "@sismo-core/hydra-s1";
-import { BigNumber } from "ethers";
-
-
-const poseidon = await buildPoseidon();
-const commitmentMapperTester = await CommitmentMapperTester.generate();
-
-const sourceAddress = ; //ETHAddress
-const sourceSignature = ; //ETHSig(OWNERSHIP_SIGNATURE_MESSAGE)
-const sourceSecret = BigNumber.from(1);
-const sourceCommitment = poseidon([sourceSecret]).toHexString();
-const { commitmentReceipt: sourceCommitmentReceipt } = await commitmentMapperTester.commit(
-    sourceAddress,
-    sourceSignature,
-    sourceCommitment
-);
-
-const source: HydraS1Account = {
-    identifier: sourceAddress,
-    secret: sourceSecret,
-    commitmentReceipt: sourceCommitmentReceipt
-}
-
-const destinationAddress = ; //ETHAddress
-const destinationSignature = ; //ETHSig(OWNERSHIP_SIGNATURE_MESSAGE)
-const destinationSecret = BigNumber.from(2);
-const destinationCommitment = poseidon([destinationSecret]).toHexString();
-const { commitmentReceipt: destinationCommitmentReceipt } = await commitmentMapperTester.commit(
-    destinationAddress,
-    destinationSignature,
-    destinationCommitment
-);
-
-const destination: HydraS1Account = {
-    identifier: destinationAddress,
-    secret: destinationSecret,
-    commitmentReceipt: destinationCommitmentReceipt
-}
-
-const merkleTreeData: MerkleTreeData = {
-    [sourceAddress]: 4,
-    "0x01": 5,
-    "0x02": 6,
-    "0x03": 7
-};
-
-const accountsTree = new MerkleTree(merkleTreeData, poseidon);
-
-const registryTree = new MerkleTree({
-    [accountsTree.getRoot().toHexString()]: accountsTree.getHeight(),
-}, poseidon, REGISTRY_TREE_HEIGHT);
-
-const prover = new HydraS1Prover(
-    registryTree,
-    await commitmentMapperTester.getPubKey()
-); 
-
-const statementComparator = true;
-const statementValue = BigNumber.from(merkleTreeData[sourceAddress]);
-const chainId = 1;
-const requestIdentifier = BigNumber.from(123);
-
-const snarkProof: SnarkProof = await prover.generateSnarkProof({
-    source,
-    destination,
-    statementValue,
-    chainId,
-    accountsTree,
-    requestIdentifier,
-    statementComparator
-});
-``` 
 
 ## Verifier js (HydraS1Verifier) <a name="VerifierJs"></a>
 
