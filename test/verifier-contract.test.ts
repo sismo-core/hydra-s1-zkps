@@ -12,6 +12,7 @@ import {
   SnarkProof,
   REGISTRY_TREE_HEIGHT,
   HydraS1Prover,
+  VaultInput,
 } from "../package/src";
 import {
   CommitmentMapperTester,
@@ -27,6 +28,7 @@ describe("Hydra S1 Verifier contract", () => {
   let registryTree: KVMerkleTree;
   let accountsTree: KVMerkleTree;
   let merkleTreeData: MerkleTreeData;
+  let vault: VaultInput;
 
   before(async () => {
     // init poseidon hash function and elliptic curve setup
@@ -36,13 +38,21 @@ describe("Hydra S1 Verifier contract", () => {
 
     const signers = await hre.ethers.getSigners();
 
+    const vaultSecret = BigNumber.from("0x123456");
+    const vaultNamespace = BigNumber.from(123);
+    vault = {
+      secret: vaultSecret,
+      namespace: vaultNamespace,
+      identifier: poseidon([vaultSecret, vaultNamespace]).toHexString(),
+    };
+
     accounts = [];
 
     for (let i = 0; i < 10; i++) {
       const address = (await signers[i].getAddress()).toLowerCase();
       const signature = await signers[i].signMessage(getOwnershipMsg(address));
       const secret = BigNumber.from(i);
-      const commitment = poseidon([secret]).toHexString();
+      const commitment = poseidon([vaultSecret, secret]).toHexString();
       const { commitmentReceipt } = await commitmentMapperTester.commit(
         address,
         signature,
@@ -93,27 +103,28 @@ describe("Hydra S1 Verifier contract", () => {
   });
 
   it("Should be able to generate the proof using the prover package", async () => {
-    const prover = new HydraS1Prover(
-      registryTree,
-      await commitmentMapperTester.getPubKey()
-    );
+    const prover = new HydraS1Prover(await commitmentMapperTester.getPubKey());
 
     const source = accounts[0];
-    const destination = accounts[4];
+    const destination = {
+      ...accounts[4],
+      chainId: parseInt(await hre.getChainId()),
+    };
     const statementValue = BigNumber.from(
       merkleTreeData[BigNumber.from(source.identifier).toHexString()]
     );
 
     proof = await prover.generateSnarkProof({
+      vault,
       source,
       destination,
-      statementValue,
-      chainId: parseInt(await hre.getChainId()),
-      accountsTree: accountsTree,
+      statement: {
+        value: statementValue,
+        comparator: 1,
+        accountsTree: accountsTree,
+        registryTree: registryTree,
+      },
       requestIdentifier,
-      statementComparator: Boolean(
-        registryTree.getValue(accountsTree.getRoot().toHexString()).toNumber()
-      ),
     });
   });
 

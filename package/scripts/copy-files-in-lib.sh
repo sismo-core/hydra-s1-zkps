@@ -1,4 +1,4 @@
-!/bin/bash -e
+#!/bin/bash -e
 
 cd "$(git rev-parse --show-toplevel)"
 

@@ -25,7 +25,7 @@ export class SnarkProof {
 
   public toBytes() {
     return ethers.utils.defaultAbiCoder.encode(
-      ["uint256[2]", "uint256[2][2]", "uint256[2]", "uint256[10]"],
+      ["uint256[2]", "uint256[2][2]", "uint256[2]", "uint256[12]"],
       [this.a, this.b, this.c, this.input]
     );
   }

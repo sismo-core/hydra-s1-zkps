@@ -269,6 +269,17 @@ describe("Hydra S1 Circuits", () => {
       );
     });
 
+    it("Should throw with wrong vault secret", async () => {
+      await circuitShouldFail(
+        circuitTester,
+        {
+          ...inputs,
+          ...{ vaultSecret: BigNumber.from(123).toBigInt() },
+        },
+        "Error: Assert Failed.\nError in template ForceEqualIfEnabled"
+      );
+    });
+
     it("Should throw with wrong sourceCommitmentReceipt", async () => {
       await circuitShouldFail(
         circuitTester,
@@ -280,6 +291,21 @@ describe("Hydra S1 Circuits", () => {
               BigNumber.from(2).toBigInt(),
               BigNumber.from(3).toBigInt(),
             ],
+          },
+        },
+        "Error: Assert Failed.\nError in template ForceEqualIfEnabled"
+      );
+    });
+  });
+
+  describe("Verifying vault constraints are good", async () => {
+    it("Should throw with wrong vault identifier", async () => {
+      await circuitShouldFail(
+        circuitTester,
+        {
+          ...inputs,
+          ...{
+            vaultIdentifier: BigNumber.from("0x123").toBigInt(),
           },
         },
         "Error: Assert Failed.\nError in template ForceEqualIfEnabled"

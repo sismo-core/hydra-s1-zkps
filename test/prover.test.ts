@@ -1,4 +1,8 @@
 import {
+  DestinationInput,
+  VaultInput,
+} from "./../package/src/prover/hydra-s1-prover";
+import {
   CommitmentMapperTester,
   getOwnershipMsg,
 } from "@sismo-core/commitment-mapper-tester-js";
@@ -28,16 +32,25 @@ describe("Hydra S1 Prover", () => {
   let merkleTreeData1: MerkleTreeData;
   let accountsTree2: KVMerkleTree;
   let prover: HydraS1Prover;
-  let host: number;
+  let chainId: number;
   let source: HydraS1Account;
-  let destination: HydraS1Account;
+  let destination: DestinationInput;
   let sourceValue: BigNumber;
   let snarkProof: SnarkProof;
   let statementComparator: 0 | 1;
+  let vault: VaultInput;
 
   before(async () => {
     poseidon = await buildPoseidon();
     commitmentMapperTester = await CommitmentMapperTester.generate();
+
+    const vaultSecret = BigNumber.from("0x123456");
+    const vaultNamespace = BigNumber.from(123);
+    vault = {
+      secret: vaultSecret,
+      namespace: vaultNamespace,
+      identifier: poseidon([vaultSecret, vaultNamespace]).toHexString(),
+    };
 
     const signers = await hre.ethers.getSigners();
 
@@ -47,7 +60,7 @@ describe("Hydra S1 Prover", () => {
       const address = (await signers[i].getAddress()).toLowerCase();
       const signature = await signers[i].signMessage(getOwnershipMsg(address));
       const secret = BigNumber.from(i);
-      const commitment = poseidon([secret]).toHexString();
+      const commitment = poseidon([vaultSecret, secret]).toHexString();
       const { commitmentReceipt } = await commitmentMapperTester.commit(
         address,
         signature,
@@ -87,15 +100,15 @@ describe("Hydra S1 Prover", () => {
       REGISTRY_TREE_HEIGHT
     );
 
-    prover = new HydraS1Prover(
-      registryTree,
-      await commitmentMapperTester.getPubKey()
-    );
+    prover = new HydraS1Prover(await commitmentMapperTester.getPubKey());
 
-    host = parseInt(await hre.getChainId());
+    chainId = parseInt(await hre.getChainId());
 
     source = accounts[0];
-    destination = accounts[4];
+    destination = {
+      ...accounts[4],
+      chainId: chainId,
+    };
 
     sourceValue = BigNumber.from(
       merkleTreeData1[BigNumber.from(source.identifier).toHexString()]
@@ -108,15 +121,16 @@ describe("Hydra S1 Prover", () => {
 
   it("Should generate a snark proof with correct inputs", async () => {
     snarkProof = await prover.generateSnarkProof({
+      vault,
       source,
       destination,
-      statementValue: sourceValue,
-      chainId: host,
-      accountsTree: accountsTree1,
+      statement: {
+        value: sourceValue,
+        comparator: 0,
+        accountsTree: accountsTree1,
+        registryTree,
+      },
       requestIdentifier,
-      statementComparator: Boolean(
-        registryTree.getValue(accountsTree1.getRoot().toHexString()).toNumber()
-      ),
     });
 
     expect(snarkProof.input).to.deep.equal([
@@ -129,25 +143,29 @@ describe("Hydra S1 Prover", () => {
       "8075686738959054507695243166556461654566805841122075512669335921145764546801",
       "4",
       "1",
-      "1",
+      "0",
+      "20422825120840285657511723889661237099631272576795262869762539754512105357233",
+      "123",
     ]);
 
+    const account19Value =
+      merkleTreeData1[
+        ethers.utils.hexZeroPad(
+          BigNumber.from(accounts[19].identifier).toHexString(),
+          20
+        )
+      ];
     const secondSnarkProof = await prover.generateSnarkProof({
+      vault,
       source: accounts[19],
       destination,
-      statementValue:
-        merkleTreeData1[
-          ethers.utils.hexZeroPad(
-            BigNumber.from(accounts[19].identifier).toHexString(),
-            20
-          )
-        ],
-      chainId: host,
-      accountsTree: accountsTree1,
+      statement: {
+        value: account19Value,
+        comparator: 1,
+        accountsTree: accountsTree1,
+        registryTree,
+      },
       requestIdentifier,
-      statementComparator: Boolean(
-        registryTree.getValue(accountsTree1.getRoot().toHexString()).toNumber()
-      ),
     });
 
     expect(secondSnarkProof.input).to.deep.equal([
@@ -161,12 +179,14 @@ describe("Hydra S1 Prover", () => {
       "7",
       "1",
       "1",
+      "20422825120840285657511723889661237099631272576795262869762539754512105357233",
+      "123",
     ]);
   });
 
   it("Should export the proof in Bytes", async () => {
     expect(snarkProof.toBytes().substring(514)).to.equal(
-      "0000000000000000000000004f9c798553d207536b79e886b54f169264a7a1550000000000000000000000000000000000000000000000000000000000007a690739d67c4d0c90837361c2fe595d11dfecc2847dc41e1ef0da8201c0b16aa09c2206d2a327e39f643e508f5a08e922990cceba9610c15f9a94ef30d6dd54940f04f3bb0bc061e4c1df1767a6bb2e314f9e3f05bb44f19e468eac50a54580fd7e000000000000000000000000000000000000000000000000000000000000007b11daad3d3b51d9cb5b3fe940a00f3e4da0f9bafff28d088f3f202dbd412a88f1000000000000000000000000000000000000000000000000000000000000000400000000000000000000000000000000000000000000000000000000000000010000000000000000000000000000000000000000000000000000000000000001"
+      "0000000000000000000000004f9c798553d207536b79e886b54f169264a7a1550000000000000000000000000000000000000000000000000000000000007a690739d67c4d0c90837361c2fe595d11dfecc2847dc41e1ef0da8201c0b16aa09c2206d2a327e39f643e508f5a08e922990cceba9610c15f9a94ef30d6dd54940f04f3bb0bc061e4c1df1767a6bb2e314f9e3f05bb44f19e468eac50a54580fd7e000000000000000000000000000000000000000000000000000000000000007b11daad3d3b51d9cb5b3fe940a00f3e4da0f9bafff28d088f3f202dbd412a88f10000000000000000000000000000000000000000000000000000000000000004000000000000000000000000000000000000000000000000000000000000000100000000000000000000000000000000000000000000000000000000000000002d26e8cd86be758573f24bea0fe037b793a9f1bbf6aadb54360a0542aabc3fb1000000000000000000000000000000000000000000000000000000000000007b"
     );
   });
 
@@ -181,24 +201,20 @@ describe("Hydra S1 Prover", () => {
       REGISTRY_TREE_HEIGHT
     );
 
-    const prover2 = new HydraS1Prover(
-      registryTree2,
-      await commitmentMapperTester.getPubKey()
-    );
+    const prover2 = new HydraS1Prover(await commitmentMapperTester.getPubKey());
 
     try {
       await prover2.generateSnarkProof({
+        vault,
         source,
         destination,
-        statementValue: sourceValue,
-        chainId: host,
-        accountsTree: accountsTree2,
+        statement: {
+          accountsTree: accountsTree2,
+          registryTree: registryTree2,
+          value: sourceValue,
+          comparator: 0,
+        },
         requestIdentifier,
-        statementComparator: Boolean(
-          registryTree
-            .getValue(accountsTree1.getRoot().toHexString())
-            .toNumber()
-        ),
       });
     } catch (e: any) {
       expect(e.message).to.equal("Invalid Accounts tree height");
@@ -213,24 +229,20 @@ describe("Hydra S1 Prover", () => {
       poseidon
     );
 
-    const prover3 = new HydraS1Prover(
-      registryTree3,
-      await commitmentMapperTester.getPubKey()
-    );
+    const prover3 = new HydraS1Prover(await commitmentMapperTester.getPubKey());
 
     try {
       await prover3.generateSnarkProof({
+        vault,
         source,
         destination,
-        statementValue: sourceValue,
-        chainId: host,
-        accountsTree: accountsTree1,
+        statement: {
+          value: sourceValue,
+          registryTree: registryTree3,
+          accountsTree: accountsTree1,
+          comparator: 0,
+        },
         requestIdentifier,
-        statementComparator: Boolean(
-          registryTree
-            .getValue(accountsTree1.getRoot().toHexString())
-            .toNumber()
-        ),
       });
     } catch (e: any) {
       expect(e.message).to.equal("Invalid Registry tree height");
@@ -242,17 +254,16 @@ describe("Hydra S1 Prover", () => {
       "0x48c8947f69c054a5caa934674ce8881d02bb18fb59d5a63eeaddff735b0e9801e87294783281ae49fc8287a0fd86779b27d7972d3e84f0fa0d826d7cb67dfefc";
     try {
       await prover.generateSnarkProof({
+        vault,
         source,
         destination,
-        statementValue: sourceValue,
-        chainId: host,
-        accountsTree: accountsTree1,
+        statement: {
+          value: sourceValue,
+          comparator: 0,
+          accountsTree: accountsTree1,
+          registryTree,
+        },
         requestIdentifier: requestIdentifierOverflow,
-        statementComparator: Boolean(
-          registryTree
-            .getValue(accountsTree1.getRoot().toHexString())
-            .toNumber()
-        ),
       });
     } catch (e: any) {
       expect(e.message).to.equal(
@@ -264,20 +275,19 @@ describe("Hydra S1 Prover", () => {
   it("Should throw with invalid source secret", async () => {
     try {
       await prover.generateSnarkProof({
+        vault,
         source: {
           ...source,
           secret: BigNumber.from(3),
         },
         destination,
-        statementValue: sourceValue,
-        chainId: host,
-        accountsTree: accountsTree1,
+        statement: {
+          value: sourceValue,
+          comparator: 0,
+          accountsTree: accountsTree1,
+          registryTree,
+        },
         requestIdentifier,
-        statementComparator: Boolean(
-          registryTree
-            .getValue(accountsTree1.getRoot().toHexString())
-            .toNumber()
-        ),
       });
     } catch (e: any) {
       expect(e.message).to.equal("Invalid source commitment receipt");
@@ -287,6 +297,7 @@ describe("Hydra S1 Prover", () => {
   it("Should throw with invalid source commitment receipt", async () => {
     try {
       await prover.generateSnarkProof({
+        vault,
         source: {
           ...source,
           commitmentReceipt: [
@@ -296,15 +307,13 @@ describe("Hydra S1 Prover", () => {
           ],
         },
         destination,
-        statementValue: sourceValue,
-        chainId: host,
-        accountsTree: accountsTree1,
+        statement: {
+          value: sourceValue,
+          comparator: 0,
+          accountsTree: accountsTree1,
+          registryTree,
+        },
         requestIdentifier,
-        statementComparator: Boolean(
-          registryTree
-            .getValue(accountsTree1.getRoot().toHexString())
-            .toNumber()
-        ),
       });
     } catch (e: any) {
       expect(e.message).to.equal("Invalid source commitment receipt");
@@ -314,20 +323,19 @@ describe("Hydra S1 Prover", () => {
   it("Should throw with invalid destination secret", async () => {
     try {
       await prover.generateSnarkProof({
+        vault,
         source,
         destination: {
           ...destination,
           secret: BigNumber.from(3),
         },
-        statementValue: sourceValue,
-        chainId: host,
-        accountsTree: accountsTree1,
+        statement: {
+          value: sourceValue,
+          comparator: 0,
+          accountsTree: accountsTree1,
+          registryTree,
+        },
         requestIdentifier,
-        statementComparator: Boolean(
-          registryTree
-            .getValue(accountsTree1.getRoot().toHexString())
-            .toNumber()
-        ),
       });
     } catch (e: any) {
       expect(e.message).to.equal("Invalid destination commitment receipt");
@@ -337,6 +345,7 @@ describe("Hydra S1 Prover", () => {
   it("Should throw with invalid destination commitment receipt", async () => {
     try {
       await prover.generateSnarkProof({
+        vault,
         source,
         destination: {
           ...destination,
@@ -346,15 +355,13 @@ describe("Hydra S1 Prover", () => {
             BigNumber.from(3),
           ],
         },
-        statementValue: sourceValue,
-        chainId: host,
-        accountsTree: accountsTree1,
+        statement: {
+          value: sourceValue,
+          comparator: 0,
+          accountsTree: accountsTree1,
+          registryTree,
+        },
         requestIdentifier,
-        statementComparator: Boolean(
-          registryTree
-            .getValue(accountsTree1.getRoot().toHexString())
-            .toNumber()
-        ),
       });
     } catch (e: any) {
       expect(e.message).to.equal("Invalid destination commitment receipt");
@@ -364,45 +371,43 @@ describe("Hydra S1 Prover", () => {
   it("Should throw when sending statementValue > sourceValue", async () => {
     try {
       await prover.generateSnarkProof({
+        vault,
         source,
         destination,
-        statementValue: BigNumber.from(10),
-        chainId: host,
-        accountsTree: accountsTree1,
+        statement: {
+          value: BigNumber.from(10),
+          comparator: 0,
+          accountsTree: accountsTree1,
+          registryTree,
+        },
         requestIdentifier,
-        statementComparator: Boolean(
-          registryTree
-            .getValue(accountsTree1.getRoot().toHexString())
-            .toNumber()
-        ),
       });
     } catch (e: any) {
       expect(e.message).to.equal(
-        `Claimed value ${BigNumber.from(
+        `Statement value ${BigNumber.from(
           10
         ).toHexString()} can't be superior to Source value`
       );
     }
   });
 
-  it("Should throw when sending statementValue is not equal to sourceValue and statementComparator == 1", async () => {
+  it("Should throw when sending statementValue is not equal to sourceValue and statementComparator == 1 (EQ)", async () => {
     try {
       await prover.generateSnarkProof({
+        vault,
         source,
         destination,
-        statementValue: BigNumber.from(3),
-        chainId: host,
-        accountsTree: accountsTree1,
+        statement: {
+          value: BigNumber.from(3),
+          comparator: 1,
+          accountsTree: accountsTree1,
+          registryTree,
+        },
         requestIdentifier,
-        statementComparator: Boolean(
-          registryTree
-            .getValue(accountsTree1.getRoot().toHexString())
-            .toNumber()
-        ),
       });
     } catch (e: any) {
       expect(e.message).to.equal(
-        `Claimed value ${BigNumber.from(
+        `Statement value ${BigNumber.from(
           3
         ).toHexString()} must be equal with Source value when statementComparator == 1`
       );
@@ -412,17 +417,20 @@ describe("Hydra S1 Prover", () => {
   it("Should throw when sending statementValue negative", async () => {
     try {
       await prover.generateSnarkProof({
+        vault,
         source,
         destination,
-        statementValue: BigNumber.from(-3),
-        chainId: host,
-        accountsTree: accountsTree1,
+        statement: {
+          value: BigNumber.from(-3),
+          comparator: 0,
+          accountsTree: accountsTree1,
+          registryTree,
+        },
         requestIdentifier,
-        statementComparator: false,
       });
     } catch (e: any) {
       expect(e.message).to.equal(
-        `Claimed value ${BigNumber.from(-3).toHexString()} can't be negative`
+        `Statement value ${BigNumber.from(-3).toHexString()} can't be negative`
       );
     }
   });
@@ -442,13 +450,16 @@ describe("Hydra S1 Prover", () => {
 
     try {
       await prover.generateSnarkProof({
+        vault,
         source,
         destination,
-        statementValue: BigNumber.from(4),
-        chainId: host,
-        accountsTree: accountsTree,
+        statement: {
+          value: BigNumber.from(4),
+          accountsTree: accountsTree,
+          registryTree,
+          comparator: 0,
+        },
         requestIdentifier,
-        statementComparator: false,
       });
     } catch (e: any) {
       expect(e.message).to.equal(
@@ -461,13 +472,16 @@ describe("Hydra S1 Prover", () => {
     const newSource = accounts[0];
     try {
       await prover.generateSnarkProof({
+        vault,
         source: newSource,
         destination,
-        statementValue: BigNumber.from(4),
-        chainId: host,
-        accountsTree: accountsTree1,
+        statement: {
+          value: BigNumber.from(4),
+          comparator: 0,
+          accountsTree: accountsTree1,
+          registryTree,
+        },
         requestIdentifier,
-        statementComparator: false,
       });
     } catch (e: any) {
       expect(e.message).to.equal(

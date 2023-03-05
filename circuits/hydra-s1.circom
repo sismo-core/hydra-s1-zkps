@@ -36,8 +36,8 @@ template hydraS1(registryTreeHeight, accountsTreeHeight) {
   signal input requestIdentifier;
   signal input proofIdentifier;
   signal input statementValue;
-  signal input accountsTreeValue; // accounts tree 0 => on check pas le group 
-  signal input statementComparator; // 1 => strict, 0 => not strict, 
+  signal input accountsTreeValue;
+  signal input statementComparator; 
   signal input vaultIdentifier;
   signal input vaultNamespace;
 
@@ -115,12 +115,14 @@ template hydraS1(registryTreeHeight, accountsTreeHeight) {
     registryTreePathVerifier.pathIndices[i] <== registryMerklePathIndices[i];
   }
 
-  // Verify claimed value validity
+  // Verify statement value validity
+  // 0 => sourceValue can be higher than statementValue 
+  // 1 => sourceValue and statementValue should be equal 
   // Prevent overflow of comparator range
   component sourceInRange = Num2Bits(252);
   sourceInRange.in <== sourceValue;
-  component claimedInRange = Num2Bits(252);
-  claimedInRange.in <== statementValue;
+  component statementInRange = Num2Bits(252);
+  statementInRange.in <== statementValue;
   // 0 <= statementValue <= sourceValue
   component leq = LessEqThan(252);
   leq.in[0] <== statementValue;

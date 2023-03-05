@@ -256,19 +256,26 @@ export class HydraS1Prover {
 
       if (statementValue.gt(sourceValue)) {
         throw new Error(
-          `Claimed value ${statementValue.toHexString()} can't be superior to Source value`
+          `Statement value ${statementValue.toHexString()} can't be superior to Source value`
+        );
+      }
+
+      if (statementValue.lt(0)) {
+        throw new Error(
+          `Statement value ${statementValue.toHexString()} can't be negative`
         );
       }
 
       if (statementComparator && !statementValue.eq(sourceValue)) {
         throw new Error(
-          `Claimed value ${statementValue.toHexString()} must be equal with Source value when statementComparator == 1`
+          `Statement value ${statementValue.toHexString()} must be equal with Source value when statementComparator == 1`
         );
       }
     }
 
     const isSourceCommitmentValid = await verifyCommitment(
       source.identifier,
+      vault.secret,
       source.secret,
       source.commitmentReceipt,
       this.commitmentMapperPubKey
@@ -278,18 +285,13 @@ export class HydraS1Prover {
 
     const isDestinationCommitmentValid = await verifyCommitment(
       destinationIdentifier,
+      vault.secret,
       destinationSecret,
       destinationCommitmentReceipt,
       this.commitmentMapperPubKey
     );
     if (!isDestinationCommitmentValid)
       throw new Error("Invalid destination commitment receipt");
-
-    if (statementValue.lt(0)) {
-      throw new Error(
-        `Claimed value ${statementValue.toHexString()} can't be negative`
-      );
-    }
 
     const SnarkField = BigNumber.from(SNARK_FIELD);
     if (requestIdentifier.gt(SnarkField)) {
@@ -334,7 +336,7 @@ export class HydraS1Prover {
     }
     if (statementValue.gt(SnarkField)) {
       throw new Error(
-        "Claimed value overflow the snark field, please use claimed value inside the snark field"
+        "Statement value overflow the snark field, please use statement value inside the snark field"
       );
     }
   }
