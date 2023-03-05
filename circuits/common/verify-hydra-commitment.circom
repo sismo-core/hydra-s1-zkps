@@ -9,15 +9,18 @@ include "../../node_modules/circomlib/circuits/poseidon.circom";
 // See the Commitment Mapper https://commitment-mapper.docs.sismo.io 
 template VerifyHydraCommitment() {
   signal input address; 
-  signal input secret;
+  signal input accountSecret;
+  signal input vaultSecret;
+  signal input enabled;
 
   signal input commitmentMapperPubKey[2];
   signal input commitmentReceipt[3];
 
-  // Verify that the user has the right commitment secret
+  // Verify that the user has the right commitment accountSecret
   // This is a Proof Of Commitment Ownership
-  component commitment = Poseidon(1);
-  commitment.inputs[0] <== secret;
+  component commitment = Poseidon(2);
+  commitment.inputs[0] <== vaultSecret;
+  commitment.inputs[1] <== accountSecret;
 
   // Re-create the commitment mapping between the address and 
   // the commitment
@@ -28,7 +31,7 @@ template VerifyHydraCommitment() {
   // Verify the Hydra commitment receipt
   // of the given commitmentMapperPubKey
   component eddsa = EdDSAPoseidonVerifier();
-  eddsa.enabled <== 1;
+  eddsa.enabled <== enabled;
   eddsa.Ax <== commitmentMapperPubKey[0];
   eddsa.Ay <== commitmentMapperPubKey[1];
   eddsa.R8x <== commitmentReceipt[0];

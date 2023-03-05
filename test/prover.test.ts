@@ -21,7 +21,7 @@ import {
 describe("Hydra S1 Prover", () => {
   let commitmentMapperTester: CommitmentMapperTester;
   let accounts: HydraS1Account[];
-  let externalNullifier: BigNumber;
+  let requestIdentifier: BigNumber;
   let registryTree: KVMerkleTree;
   let poseidon: Poseidon;
   let accountsTree1: KVMerkleTree;
@@ -33,7 +33,7 @@ describe("Hydra S1 Prover", () => {
   let destination: HydraS1Account;
   let sourceValue: BigNumber;
   let snarkProof: SnarkProof;
-  let isStrict: 0 | 1;
+  let statementComparator: 0 | 1;
 
   before(async () => {
     poseidon = await buildPoseidon();
@@ -60,7 +60,7 @@ describe("Hydra S1 Prover", () => {
       });
     }
 
-    externalNullifier = BigNumber.from(123);
+    requestIdentifier = BigNumber.from(123);
 
     merkleTreeData1 = {
       [BigNumber.from(accounts[0].identifier).toHexString()]: 4,
@@ -101,7 +101,7 @@ describe("Hydra S1 Prover", () => {
       merkleTreeData1[BigNumber.from(source.identifier).toHexString()]
     );
 
-    isStrict = registryTree
+    statementComparator = registryTree
       .getValue(accountsTree1.getRoot().toHexString())
       .toNumber() as 0 | 1;
   });
@@ -110,11 +110,11 @@ describe("Hydra S1 Prover", () => {
     snarkProof = await prover.generateSnarkProof({
       source,
       destination,
-      claimedValue: sourceValue,
+      statementValue: sourceValue,
       chainId: host,
       accountsTree: accountsTree1,
-      externalNullifier,
-      isStrict: Boolean(
+      requestIdentifier,
+      statementComparator: Boolean(
         registryTree.getValue(accountsTree1.getRoot().toHexString()).toNumber()
       ),
     });
@@ -135,7 +135,7 @@ describe("Hydra S1 Prover", () => {
     const secondSnarkProof = await prover.generateSnarkProof({
       source: accounts[19],
       destination,
-      claimedValue:
+      statementValue:
         merkleTreeData1[
           ethers.utils.hexZeroPad(
             BigNumber.from(accounts[19].identifier).toHexString(),
@@ -144,8 +144,8 @@ describe("Hydra S1 Prover", () => {
         ],
       chainId: host,
       accountsTree: accountsTree1,
-      externalNullifier,
-      isStrict: Boolean(
+      requestIdentifier,
+      statementComparator: Boolean(
         registryTree.getValue(accountsTree1.getRoot().toHexString()).toNumber()
       ),
     });
@@ -190,11 +190,11 @@ describe("Hydra S1 Prover", () => {
       await prover2.generateSnarkProof({
         source,
         destination,
-        claimedValue: sourceValue,
+        statementValue: sourceValue,
         chainId: host,
         accountsTree: accountsTree2,
-        externalNullifier,
-        isStrict: Boolean(
+        requestIdentifier,
+        statementComparator: Boolean(
           registryTree
             .getValue(accountsTree1.getRoot().toHexString())
             .toNumber()
@@ -222,11 +222,11 @@ describe("Hydra S1 Prover", () => {
       await prover3.generateSnarkProof({
         source,
         destination,
-        claimedValue: sourceValue,
+        statementValue: sourceValue,
         chainId: host,
         accountsTree: accountsTree1,
-        externalNullifier,
-        isStrict: Boolean(
+        requestIdentifier,
+        statementComparator: Boolean(
           registryTree
             .getValue(accountsTree1.getRoot().toHexString())
             .toNumber()
@@ -237,18 +237,18 @@ describe("Hydra S1 Prover", () => {
     }
   });
 
-  it("Should throw when the external nullifier overflow the snark field", async () => {
-    const externalNullifierOverflow =
+  it("Should throw when the request Identifier overflow the snark field", async () => {
+    const requestIdentifierOverflow =
       "0x48c8947f69c054a5caa934674ce8881d02bb18fb59d5a63eeaddff735b0e9801e87294783281ae49fc8287a0fd86779b27d7972d3e84f0fa0d826d7cb67dfefc";
     try {
       await prover.generateSnarkProof({
         source,
         destination,
-        claimedValue: sourceValue,
+        statementValue: sourceValue,
         chainId: host,
         accountsTree: accountsTree1,
-        externalNullifier: externalNullifierOverflow,
-        isStrict: Boolean(
+        requestIdentifier: requestIdentifierOverflow,
+        statementComparator: Boolean(
           registryTree
             .getValue(accountsTree1.getRoot().toHexString())
             .toNumber()
@@ -256,7 +256,7 @@ describe("Hydra S1 Prover", () => {
       });
     } catch (e: any) {
       expect(e.message).to.equal(
-        "External nullifier overflow the snark field, please use external nullifier inside the snark field"
+        "RequestIdentifier overflow the snark field, please use request Identifier inside the snark field"
       );
     }
   });
@@ -269,11 +269,11 @@ describe("Hydra S1 Prover", () => {
           secret: BigNumber.from(3),
         },
         destination,
-        claimedValue: sourceValue,
+        statementValue: sourceValue,
         chainId: host,
         accountsTree: accountsTree1,
-        externalNullifier,
-        isStrict: Boolean(
+        requestIdentifier,
+        statementComparator: Boolean(
           registryTree
             .getValue(accountsTree1.getRoot().toHexString())
             .toNumber()
@@ -296,11 +296,11 @@ describe("Hydra S1 Prover", () => {
           ],
         },
         destination,
-        claimedValue: sourceValue,
+        statementValue: sourceValue,
         chainId: host,
         accountsTree: accountsTree1,
-        externalNullifier,
-        isStrict: Boolean(
+        requestIdentifier,
+        statementComparator: Boolean(
           registryTree
             .getValue(accountsTree1.getRoot().toHexString())
             .toNumber()
@@ -319,11 +319,11 @@ describe("Hydra S1 Prover", () => {
           ...destination,
           secret: BigNumber.from(3),
         },
-        claimedValue: sourceValue,
+        statementValue: sourceValue,
         chainId: host,
         accountsTree: accountsTree1,
-        externalNullifier,
-        isStrict: Boolean(
+        requestIdentifier,
+        statementComparator: Boolean(
           registryTree
             .getValue(accountsTree1.getRoot().toHexString())
             .toNumber()
@@ -346,11 +346,11 @@ describe("Hydra S1 Prover", () => {
             BigNumber.from(3),
           ],
         },
-        claimedValue: sourceValue,
+        statementValue: sourceValue,
         chainId: host,
         accountsTree: accountsTree1,
-        externalNullifier,
-        isStrict: Boolean(
+        requestIdentifier,
+        statementComparator: Boolean(
           registryTree
             .getValue(accountsTree1.getRoot().toHexString())
             .toNumber()
@@ -361,16 +361,16 @@ describe("Hydra S1 Prover", () => {
     }
   });
 
-  it("Should throw when sending claimedValue > sourceValue", async () => {
+  it("Should throw when sending statementValue > sourceValue", async () => {
     try {
       await prover.generateSnarkProof({
         source,
         destination,
-        claimedValue: BigNumber.from(10),
+        statementValue: BigNumber.from(10),
         chainId: host,
         accountsTree: accountsTree1,
-        externalNullifier,
-        isStrict: Boolean(
+        requestIdentifier,
+        statementComparator: Boolean(
           registryTree
             .getValue(accountsTree1.getRoot().toHexString())
             .toNumber()
@@ -385,16 +385,16 @@ describe("Hydra S1 Prover", () => {
     }
   });
 
-  it("Should throw when sending claimedValue is not equal to sourceValue and isStrict == 1", async () => {
+  it("Should throw when sending statementValue is not equal to sourceValue and statementComparator == 1", async () => {
     try {
       await prover.generateSnarkProof({
         source,
         destination,
-        claimedValue: BigNumber.from(3),
+        statementValue: BigNumber.from(3),
         chainId: host,
         accountsTree: accountsTree1,
-        externalNullifier,
-        isStrict: Boolean(
+        requestIdentifier,
+        statementComparator: Boolean(
           registryTree
             .getValue(accountsTree1.getRoot().toHexString())
             .toNumber()
@@ -404,21 +404,21 @@ describe("Hydra S1 Prover", () => {
       expect(e.message).to.equal(
         `Claimed value ${BigNumber.from(
           3
-        ).toHexString()} must be equal with Source value when isStrict == 1`
+        ).toHexString()} must be equal with Source value when statementComparator == 1`
       );
     }
   });
 
-  it("Should throw when sending claimedValue negative", async () => {
+  it("Should throw when sending statementValue negative", async () => {
     try {
       await prover.generateSnarkProof({
         source,
         destination,
-        claimedValue: BigNumber.from(-3),
+        statementValue: BigNumber.from(-3),
         chainId: host,
         accountsTree: accountsTree1,
-        externalNullifier,
-        isStrict: false,
+        requestIdentifier,
+        statementComparator: false,
       });
     } catch (e: any) {
       expect(e.message).to.equal(
@@ -444,11 +444,11 @@ describe("Hydra S1 Prover", () => {
       await prover.generateSnarkProof({
         source,
         destination,
-        claimedValue: BigNumber.from(4),
+        statementValue: BigNumber.from(4),
         chainId: host,
         accountsTree: accountsTree,
-        externalNullifier,
-        isStrict: false,
+        requestIdentifier,
+        statementComparator: false,
       });
     } catch (e: any) {
       expect(e.message).to.equal(
@@ -463,11 +463,11 @@ describe("Hydra S1 Prover", () => {
       await prover.generateSnarkProof({
         source: newSource,
         destination,
-        claimedValue: BigNumber.from(4),
+        statementValue: BigNumber.from(4),
         chainId: host,
         accountsTree: accountsTree1,
-        externalNullifier,
-        isStrict: false,
+        requestIdentifier,
+        statementComparator: false,
       });
     } catch (e: any) {
       expect(e.message).to.equal(

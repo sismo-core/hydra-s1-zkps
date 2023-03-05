@@ -1,6 +1,7 @@
 export type PrivateInputs = {
   sourceIdentifier: BigInt;
   sourceSecret: BigInt;
+  vaultSecret: BigInt;
   sourceCommitmentReceipt: BigInt[];
   destinationSecret: BigInt;
   destinationCommitmentReceipt: BigInt[];
@@ -13,15 +14,17 @@ export type PrivateInputs = {
 };
 
 export type PublicInputs = {
-  isStrict: 1 | 0;
+  vaultIdentifier: BigInt;
+  vaultNamespace: BigInt;
   commitmentMapperPubKey: BigInt[];
   registryTreeRoot: BigInt;
-  externalNullifier: BigInt;
-  nullifier: BigInt;
+  requestIdentifier: BigInt;
+  proofIdentifier: BigInt;
   destinationIdentifier: BigInt;
+  statementValue: BigInt;
   chainId: BigInt;
   accountsTreeValue: BigInt;
-  claimedValue: BigInt;
+  statementComparator: 1 | 0;
 };
 
 export type Inputs = {

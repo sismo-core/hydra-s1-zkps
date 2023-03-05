@@ -24,6 +24,7 @@ template PositionSwitcher() {
 template VerifyMerklePath(levels) {
     signal input leaf;
     signal input root;
+    signal input enabled;
     signal input pathElements[levels];
     signal input pathIndices[levels];
 
@@ -44,5 +45,5 @@ template VerifyMerklePath(levels) {
         computedPath[i] <== hashers[i].out;
     }
 
-    root === computedPath[levels - 1];
+    (root - computedPath[levels - 1])*enabled === 0;
 }
