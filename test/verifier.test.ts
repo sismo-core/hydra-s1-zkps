@@ -42,7 +42,6 @@ describe("Hydra S1 Verifier", () => {
     vault = {
       secret: vaultSecret,
       namespace: vaultNamespace,
-      identifier: poseidon([vaultSecret, vaultNamespace]).toHexString(),
     };
 
     accounts = [];
@@ -90,9 +89,13 @@ describe("Hydra S1 Verifier", () => {
   it("Should be able to generate the proof using the prover package", async () => {
     const prover = new HydraS1Prover(await commitmentMapperTester.getPubKey());
 
-    const source = accounts[0];
+    const source = {
+      ...accounts[0],
+      verificationEnabled: true,
+    };
     const destination = {
       ...accounts[4],
+      verificationEnabled: true,
       chainId: 0,
     };
     const statementValue = BigNumber.from(

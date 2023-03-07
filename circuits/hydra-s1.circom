@@ -40,6 +40,9 @@ template hydraS1(registryTreeHeight, accountsTreeHeight) {
   signal input statementComparator; 
   signal input vaultIdentifier;
   signal input vaultNamespace;
+  signal input sourceVerificationEnabled;
+  signal input destinationVerificationEnabled;
+  signal input randomBeacon;
 
   // Verify the source account went through the Hydra Delegated Proof of Ownership
   // That means the user own the source address
@@ -47,7 +50,7 @@ template hydraS1(registryTreeHeight, accountsTreeHeight) {
   sourceCommitmentVerification.address <== sourceIdentifier;
   sourceCommitmentVerification.vaultSecret <== vaultSecret; 
   sourceCommitmentVerification.accountSecret <== sourceSecret; 
-  sourceCommitmentVerification.enabled <== 1; 
+  sourceCommitmentVerification.enabled <== sourceVerificationEnabled; 
   sourceCommitmentVerification.commitmentMapperPubKey[0] <== commitmentMapperPubKey[0];
   sourceCommitmentVerification.commitmentMapperPubKey[1] <== commitmentMapperPubKey[1];
   sourceCommitmentVerification.commitmentReceipt[0] <== sourceCommitmentReceipt[0];
@@ -55,17 +58,13 @@ template hydraS1(registryTreeHeight, accountsTreeHeight) {
   sourceCommitmentVerification.commitmentReceipt[2] <== sourceCommitmentReceipt[2];
 
 
-  // Verify the destination only if the destinationIdentifier is not 0
-  component destinationIdentifierIsZero = IsZero();
-  destinationIdentifierIsZero.in <== accountsTreeValue;
-
   // Verify the destination account went through the Hydra Delegated Proof of Ownership
   // That means the user own the destination address
   component destinationCommitmentVerification = VerifyHydraCommitment();
   destinationCommitmentVerification.address <== destinationIdentifier;
   destinationCommitmentVerification.vaultSecret <== vaultSecret; 
   destinationCommitmentVerification.accountSecret <== destinationSecret; 
-  destinationCommitmentVerification.enabled <== (1 - destinationIdentifierIsZero.out); 
+  destinationCommitmentVerification.enabled <== destinationVerificationEnabled; 
   destinationCommitmentVerification.commitmentMapperPubKey[0] <== commitmentMapperPubKey[0];
   destinationCommitmentVerification.commitmentMapperPubKey[1] <== commitmentMapperPubKey[1];
   destinationCommitmentVerification.commitmentReceipt[0] <== destinationCommitmentReceipt[0];
@@ -154,15 +153,22 @@ template hydraS1(registryTreeHeight, accountsTreeHeight) {
   // Check the proofIdentifier is valid only if requestIdentifier is not 0
   (proofIdentifierHasher.out - proofIdentifier) * (1-requestIdentifierIsZero.out) === 0;
 
+
+  // Verify if the vaultNamespace is 0 then we don't verify the vaultIdentifier
+  component vaultNamespaceIsZero = IsZero();
+  vaultNamespaceIsZero.in <== vaultNamespace;
+
   // Compute the vaultIdentifier
   component vaultIdentifierHasher = Poseidon(2);
   vaultIdentifierHasher.inputs[0] <== vaultSecret;
   vaultIdentifierHasher.inputs[1] <== vaultNamespace;
-  vaultIdentifierHasher.out === vaultIdentifier;
+  (vaultIdentifierHasher.out - vaultIdentifier) * (1 - vaultNamespaceIsZero.out) === 0;
 
   // Square serve to avoid removing by the compilator optimizer
   signal chainIdSquare;
   chainIdSquare <== chainId * chainId;
+  signal randomBeaconSquare;
+  randomBeaconSquare <== randomBeacon * randomBeacon;
 }
 
-component main {public [commitmentMapperPubKey, registryTreeRoot, vaultNamespace, vaultIdentifier, requestIdentifier, proofIdentifier, destinationIdentifier, statementValue, chainId, accountsTreeValue, statementComparator]} = hydraS1(20,20);
+component main {public [commitmentMapperPubKey, registryTreeRoot, vaultNamespace, vaultIdentifier, requestIdentifier, proofIdentifier, destinationIdentifier, statementValue, chainId, accountsTreeValue, statementComparator, sourceVerificationEnabled, destinationVerificationEnabled, randomBeacon]} = hydraS1(20,20);

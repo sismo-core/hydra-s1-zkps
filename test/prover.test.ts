@@ -1,5 +1,6 @@
 import {
   DestinationInput,
+  SourceInput,
   VaultInput,
 } from "./../package/src/prover/hydra-s1-prover";
 import {
@@ -33,7 +34,7 @@ describe("Hydra S1 Prover", () => {
   let accountsTree2: KVMerkleTree;
   let prover: HydraS1Prover;
   let chainId: number;
-  let source: HydraS1Account;
+  let source: SourceInput;
   let destination: DestinationInput;
   let sourceValue: BigNumber;
   let snarkProof: SnarkProof;
@@ -49,7 +50,6 @@ describe("Hydra S1 Prover", () => {
     vault = {
       secret: vaultSecret,
       namespace: vaultNamespace,
-      identifier: poseidon([vaultSecret, vaultNamespace]).toHexString(),
     };
 
     const signers = await hre.ethers.getSigners();
@@ -104,9 +104,13 @@ describe("Hydra S1 Prover", () => {
 
     chainId = parseInt(await hre.getChainId());
 
-    source = accounts[0];
+    source = {
+      ...accounts[0],
+      verificationEnabled: true,
+    };
     destination = {
       ...accounts[4],
+      verificationEnabled: true,
       chainId: chainId,
     };
 
@@ -146,6 +150,9 @@ describe("Hydra S1 Prover", () => {
       "0",
       "20422825120840285657511723889661237099631272576795262869762539754512105357233",
       "123",
+      "1",
+      "1",
+      "0",
     ]);
 
     const account19Value =
@@ -157,7 +164,10 @@ describe("Hydra S1 Prover", () => {
       ];
     const secondSnarkProof = await prover.generateSnarkProof({
       vault,
-      source: accounts[19],
+      source: {
+        ...accounts[19],
+        verificationEnabled: true,
+      },
       destination,
       statement: {
         value: account19Value,
@@ -181,13 +191,60 @@ describe("Hydra S1 Prover", () => {
       "1",
       "20422825120840285657511723889661237099631272576795262869762539754512105357233",
       "123",
+      "1",
+      "1",
+      "0",
     ]);
   });
 
   it("Should export the proof in Bytes", async () => {
     expect(snarkProof.toBytes().substring(514)).to.equal(
-      "0000000000000000000000004f9c798553d207536b79e886b54f169264a7a1550000000000000000000000000000000000000000000000000000000000007a690739d67c4d0c90837361c2fe595d11dfecc2847dc41e1ef0da8201c0b16aa09c2206d2a327e39f643e508f5a08e922990cceba9610c15f9a94ef30d6dd54940f04f3bb0bc061e4c1df1767a6bb2e314f9e3f05bb44f19e468eac50a54580fd7e000000000000000000000000000000000000000000000000000000000000007b11daad3d3b51d9cb5b3fe940a00f3e4da0f9bafff28d088f3f202dbd412a88f10000000000000000000000000000000000000000000000000000000000000004000000000000000000000000000000000000000000000000000000000000000100000000000000000000000000000000000000000000000000000000000000002d26e8cd86be758573f24bea0fe037b793a9f1bbf6aadb54360a0542aabc3fb1000000000000000000000000000000000000000000000000000000000000007b"
+      "0000000000000000000000004f9c798553d207536b79e886b54f169264a7a1550000000000000000000000000000000000000000000000000000000000007a690739d67c4d0c90837361c2fe595d11dfecc2847dc41e1ef0da8201c0b16aa09c2206d2a327e39f643e508f5a08e922990cceba9610c15f9a94ef30d6dd54940f04f3bb0bc061e4c1df1767a6bb2e314f9e3f05bb44f19e468eac50a54580fd7e000000000000000000000000000000000000000000000000000000000000007b11daad3d3b51d9cb5b3fe940a00f3e4da0f9bafff28d088f3f202dbd412a88f10000000000000000000000000000000000000000000000000000000000000004000000000000000000000000000000000000000000000000000000000000000100000000000000000000000000000000000000000000000000000000000000002d26e8cd86be758573f24bea0fe037b793a9f1bbf6aadb54360a0542aabc3fb1000000000000000000000000000000000000000000000000000000000000007b000000000000000000000000000000000000000000000000000000000000000100000000000000000000000000000000000000000000000000000000000000010000000000000000000000000000000000000000000000000000000000000000"
     );
+  });
+
+  it("Snark proof of vault identifier for a specific vault namespace", async () => {
+    await prover.generateSnarkProof({
+      vault,
+    });
+  });
+
+  it("Snark proof of vault identifier for a specific vault namespace with source verification", async () => {
+    await prover.generateSnarkProof({
+      vault,
+      source,
+    });
+  });
+
+  it("Snark proof of vault identifier for a specific vault namespace with an unverified destination", async () => {
+    await prover.generateSnarkProof({
+      vault,
+      source,
+      destination: {
+        identifier: destination.identifier,
+        verificationEnabled: false,
+        chainId,
+      },
+    });
+  });
+
+  it("Snark proof of simple value in a merkleTree with simple proofIdentifier without destination verification", async () => {
+    snarkProof = await prover.generateSnarkProof({
+      vault,
+      source,
+      destination: {
+        identifier: destination.identifier,
+        verificationEnabled: false,
+        chainId,
+      },
+      statement: {
+        value: sourceValue,
+        comparator: 0,
+        accountsTree: accountsTree1,
+        registryTree,
+      },
+      requestIdentifier,
+    });
   });
 
   it("Should throw with Invalid Accounts Merkle tree height", async () => {
@@ -246,29 +303,6 @@ describe("Hydra S1 Prover", () => {
       });
     } catch (e: any) {
       expect(e.message).to.equal("Invalid Registry tree height");
-    }
-  });
-
-  it("Should throw when the request Identifier overflow the snark field", async () => {
-    const requestIdentifierOverflow =
-      "0x48c8947f69c054a5caa934674ce8881d02bb18fb59d5a63eeaddff735b0e9801e87294783281ae49fc8287a0fd86779b27d7972d3e84f0fa0d826d7cb67dfefc";
-    try {
-      await prover.generateSnarkProof({
-        vault,
-        source,
-        destination,
-        statement: {
-          value: sourceValue,
-          comparator: 0,
-          accountsTree: accountsTree1,
-          registryTree,
-        },
-        requestIdentifier: requestIdentifierOverflow,
-      });
-    } catch (e: any) {
-      expect(e.message).to.equal(
-        "RequestIdentifier overflow the snark field, please use request Identifier inside the snark field"
-      );
     }
   });
 
@@ -384,9 +418,7 @@ describe("Hydra S1 Prover", () => {
       });
     } catch (e: any) {
       expect(e.message).to.equal(
-        `Statement value ${BigNumber.from(
-          10
-        ).toHexString()} can't be superior to Source value`
+        `Statement value 10 can't be superior to Source value`
       );
     }
   });
@@ -407,9 +439,7 @@ describe("Hydra S1 Prover", () => {
       });
     } catch (e: any) {
       expect(e.message).to.equal(
-        `Statement value ${BigNumber.from(
-          3
-        ).toHexString()} must be equal with Source value when statementComparator == 1`
+        `Statement value 3 must be equal with Source value when statementComparator == 1`
       );
     }
   });
@@ -429,9 +459,7 @@ describe("Hydra S1 Prover", () => {
         requestIdentifier,
       });
     } catch (e: any) {
-      expect(e.message).to.equal(
-        `Statement value ${BigNumber.from(-3).toHexString()} can't be negative`
-      );
+      expect(e.message).to.equal(`Statement value -3 can't be negative`);
     }
   });
 
@@ -473,7 +501,10 @@ describe("Hydra S1 Prover", () => {
     try {
       await prover.generateSnarkProof({
         vault,
-        source: newSource,
+        source: {
+          ...newSource,
+          verificationEnabled: true,
+        },
         destination,
         statement: {
           value: BigNumber.from(4),

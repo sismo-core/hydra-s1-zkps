@@ -24,7 +24,10 @@ export type PublicInputs = {
   statementValue: BigInt;
   chainId: BigInt;
   accountsTreeValue: BigInt;
-  statementComparator: 1 | 0;
+  statementComparator: BigInt;
+  sourceVerificationEnabled: BigInt;
+  destinationVerificationEnabled: BigInt;
+  randomBeacon: BigInt;
 };
 
 export type Inputs = {

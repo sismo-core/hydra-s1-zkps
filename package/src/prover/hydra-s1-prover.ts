@@ -24,7 +24,6 @@ export type HydraS1Account = {
 export type VaultInput = {
   secret: BigNumberish;
   namespace: BigNumberish;
-  identifier: BigNumberish;
 };
 
 export type StatementInput = {
@@ -36,14 +35,39 @@ export type StatementInput = {
   accountsTree: KVMerkleTree;
 };
 
-export type DestinationInput = HydraS1Account & { chainId: BigNumberish };
+export type SourceInput = HydraS1Account & { verificationEnabled: boolean };
+export type DestinationInput = Partial<HydraS1Account> & {
+  verificationEnabled: boolean;
+  chainId: BigNumberish;
+};
 
 export type UserParams = {
   vault: VaultInput;
-  source: HydraS1Account;
+  source?: SourceInput;
   destination?: DestinationInput;
   statement?: StatementInput;
   requestIdentifier?: BigNumberish;
+  randomBeacon?: BigNumberish;
+};
+
+export type formattedUserParams = {
+  vaultSecret: BigInt;
+  vaultNamespace: BigInt;
+  vaultIdentifier: BigInt;
+  sourceIdentifier: BigInt;
+  sourceSecret: BigInt;
+  sourceCommitmentReceipt: BigInt[];
+  destinationIdentifier: BigInt;
+  destinationSecret: BigInt;
+  destinationCommitmentReceipt: BigInt[];
+  statementValue: BigInt;
+  requestIdentifier: BigInt;
+  chainId: BigInt;
+  proofIdentifier: BigInt;
+  statementComparator: BigInt;
+  sourceVerificationEnabled: BigInt;
+  destinationVerificationEnabled: BigInt;
+  randomBeacon: BigInt;
 };
 
 export class HydraS1Prover {
@@ -58,126 +82,184 @@ export class HydraS1Prover {
     this.esmOverrideCircuitPath = esmOverrideCircuitPath;
   }
 
+  public async format({
+    vault,
+    source,
+    destination,
+    statement,
+    requestIdentifier: requestIdentifierInput,
+    randomBeacon: randomBeaconInput,
+  }: UserParams): Promise<formattedUserParams> {
+    const poseidon = await buildPoseidon();
+    const vaultSecret = BigNumber.from(vault.secret).toBigInt();
+    const vaultNamespace = BigNumber.from(vault.namespace).toBigInt();
+    const vaultIdentifier = poseidon([vaultSecret, vaultNamespace]).toBigInt();
+    const sourceIdentifier = BigNumber.from(source?.identifier ?? 0).toBigInt();
+    const sourceSecret = BigNumber.from(source?.secret ?? 0).toBigInt();
+    const mapArrayToBigInt = (arr: BigNumberish[]) =>
+      arr.map((el) => BigNumber.from(el).toBigInt());
+    const sourceCommitmentReceipt = source?.commitmentReceipt
+      ? mapArrayToBigInt(source?.commitmentReceipt)
+      : [BigInt(0), BigInt(0), BigInt(0)];
+    const destinationIdentifier = BigNumber.from(
+      destination?.identifier ?? 0
+    ).toBigInt();
+    const destinationSecret = BigNumber.from(
+      destination?.secret ?? 0
+    ).toBigInt();
+    const destinationCommitmentReceipt = destination?.commitmentReceipt
+      ? mapArrayToBigInt(destination?.commitmentReceipt)
+      : [BigInt(0), BigInt(0), BigInt(0)];
+    const sourceSecretHash = poseidon([sourceSecret, 1]);
+    const requestIdentifier = BigNumber.from(
+      requestIdentifierInput ?? 0
+    ).toBigInt();
+    const proofIdentifier =
+      requestIdentifier !== BigInt(0)
+        ? poseidon([sourceSecretHash, requestIdentifier]).toBigInt()
+        : BigInt(0);
+
+    const statementValue = BigNumber.from(statement?.value ?? 0).toBigInt();
+    // requestIdentifier = BigNumber.from(requestIdentifier ?? 0);
+    const chainId = BigNumber.from(destination?.chainId ?? 0).toBigInt();
+
+    const statementComparator =
+      statement?.comparator === 1 ? BigInt(1) : BigInt(0);
+
+    const sourceVerificationEnabled =
+      source?.verificationEnabled === true ? BigInt(1) : BigInt(0);
+    const destinationVerificationEnabled =
+      destination?.verificationEnabled === true ? BigInt(1) : BigInt(0);
+
+    const randomBeacon = BigNumber.from(randomBeaconInput ?? 0).toBigInt();
+
+    return {
+      vaultSecret,
+      vaultNamespace,
+      vaultIdentifier,
+      sourceIdentifier,
+      sourceSecret,
+      sourceCommitmentReceipt,
+      destinationIdentifier,
+      destinationSecret,
+      destinationCommitmentReceipt,
+      requestIdentifier,
+      statementValue,
+      chainId,
+      proofIdentifier,
+      statementComparator,
+      sourceVerificationEnabled,
+      destinationVerificationEnabled,
+      randomBeacon,
+    };
+  }
+
   public async generateInputs({
     vault,
     source,
     destination,
     statement,
-    requestIdentifier,
+    requestIdentifier: requestIdentifierParam,
+    randomBeacon: randomBeaconInput,
   }: UserParams): Promise<Inputs> {
-    const vaultSecret = BigNumber.from(vault.secret);
-    const vaultNamespace = BigNumber.from(vault.namespace);
-    const vaultIdentifier = BigNumber.from(vault.identifier);
-    source.identifier = BigNumber.from(source.identifier);
-    source.secret = BigNumber.from(source.secret);
-    const destinationIdentifier = destination
-      ? BigNumber.from(destination.identifier)
-      : BigNumber.from(0);
-    const destinationSecret = destination
-      ? BigNumber.from(destination.secret)
-      : BigNumber.from(0);
-    const destinationCommitmentReceipt = destination
-      ? destination.commitmentReceipt
-      : [0, 0, 0];
+    const {
+      vaultSecret,
+      vaultNamespace,
+      vaultIdentifier,
+      sourceIdentifier,
+      sourceSecret,
+      sourceCommitmentReceipt,
+      destinationIdentifier,
+      destinationSecret,
+      destinationCommitmentReceipt,
+      requestIdentifier,
+      statementValue,
+      chainId,
+      proofIdentifier,
+      statementComparator,
+      sourceVerificationEnabled,
+      destinationVerificationEnabled,
+      randomBeacon,
+    } = await this.format({
+      vault,
+      source,
+      destination,
+      statement,
+      requestIdentifier: requestIdentifierParam,
+      randomBeacon: randomBeaconInput,
+    });
 
-    const statementValue = BigNumber.from(
-      statement && statement.value ? statement.value : 0
-    );
-    requestIdentifier = BigNumber.from(requestIdentifier ?? 0);
-    const chainId =
-      destination !== undefined
-        ? BigNumber.from(destination.chainId)
-        : BigNumber.from(0);
-
-    const zeroPaddedSourceIdentifier = ethers.utils.hexZeroPad(
-      source.identifier.toHexString(),
-      20
-    );
-
-    const poseidon = await buildPoseidon();
-    const emptyMerklePath = {
-      elements: new Array(ACCOUNTS_TREE_HEIGHT).fill(BigNumber.from(0)),
-      indices: new Array(ACCOUNTS_TREE_HEIGHT).fill(0),
-    };
-
-    const accountsTree = statement ? statement.accountsTree : undefined;
-    const registryTree = statement ? statement.registryTree : undefined;
+    const accountsTree = statement?.accountsTree;
+    const registryTree = statement?.registryTree;
 
     if (accountsTree !== undefined && registryTree === undefined) {
       throw new Error("accountsTree and registryTree must be defined together");
     }
 
-    const accountMerklePath =
-      accountsTree !== undefined
-        ? accountsTree.getMerklePathFromKey(zeroPaddedSourceIdentifier)
-        : emptyMerklePath;
-    const sourceValue =
-      accountsTree !== undefined
-        ? accountsTree.getValue(zeroPaddedSourceIdentifier)
-        : BigNumber.from(0);
-
-    const registryMerklePath: MerklePath =
-      accountsTree !== undefined
-        ? registryTree!.getMerklePathFromKey(
-            accountsTree.getRoot().toHexString()
-          )
-        : emptyMerklePath;
-    const accountsTreeValue =
-      accountsTree !== undefined
-        ? registryTree!.getValue(accountsTree.getRoot().toHexString())
-        : BigNumber.from(0);
-
-    const accountsTreeRoot =
-      accountsTree !== undefined
-        ? accountsTree.getRoot().toBigInt()
-        : BigInt(0);
-
-    const registryTreeRoot =
-      registryTree !== undefined
-        ? registryTree.getRoot().toBigInt()
-        : BigInt(0);
-
-    const sourceSecretHash = poseidon([source.secret, 1]);
-    const proofIdentifier = !requestIdentifier.eq(0)
-      ? poseidon([sourceSecretHash, requestIdentifier])
-      : BigNumber.from(0);
+    const emptyMerklePath = {
+      elements: new Array(ACCOUNTS_TREE_HEIGHT).fill(BigNumber.from(0)),
+      indices: new Array(ACCOUNTS_TREE_HEIGHT).fill(0),
+    };
 
     const mapArrayToBigInt = (arr: BigNumberish[]) =>
       arr.map((el) => BigNumber.from(el).toBigInt());
 
+    const zeroPaddedSourceIdentifier = ethers.utils.hexZeroPad(
+      ethers.utils.hexlify(BigNumber.from(sourceIdentifier)),
+      20
+    );
+    const accountMerklePath = accountsTree
+      ? accountsTree.getMerklePathFromKey(zeroPaddedSourceIdentifier)
+      : emptyMerklePath;
+    const sourceValue = accountsTree
+      ? accountsTree.getValue(zeroPaddedSourceIdentifier).toBigInt()
+      : BigInt(0);
+
+    const registryMerklePath: MerklePath = accountsTree
+      ? registryTree!.getMerklePathFromKey(accountsTree.getRoot().toHexString())
+      : emptyMerklePath;
+    const accountsTreeValue = accountsTree
+      ? registryTree!.getValue(accountsTree.getRoot().toHexString()).toBigInt()
+      : BigInt(0);
+
+    const accountsTreeRoot = accountsTree
+      ? accountsTree.getRoot().toBigInt()
+      : BigInt(0);
+
+    const registryTreeRoot = registryTree
+      ? registryTree.getRoot().toBigInt()
+      : BigInt(0);
+
     const privateInputs: PrivateInputs = {
-      vaultSecret: vaultSecret.toBigInt(),
-      sourceIdentifier: source.identifier.toBigInt(),
-      sourceSecret: source.secret.toBigInt(),
-      sourceCommitmentReceipt: source.commitmentReceipt.map((el) =>
-        BigNumber.from(el).toBigInt()
-      ),
-      destinationSecret: destinationSecret.toBigInt(),
-      destinationCommitmentReceipt: destinationCommitmentReceipt.map((el) =>
-        BigNumber.from(el).toBigInt()
-      ),
-      accountsTreeRoot: accountsTreeRoot,
+      vaultSecret,
+      sourceIdentifier,
+      sourceSecret,
+      sourceCommitmentReceipt,
+      destinationSecret,
+      destinationCommitmentReceipt,
+      accountsTreeRoot,
       accountMerklePathElements: mapArrayToBigInt(accountMerklePath.elements),
       accountMerklePathIndices: accountMerklePath.indices,
       registryMerklePathElements: mapArrayToBigInt(registryMerklePath.elements),
       registryMerklePathIndices: registryMerklePath.indices,
-      sourceValue: sourceValue.toBigInt(),
+      sourceValue,
     };
 
     const publicInputs: PublicInputs = {
-      vaultNamespace: vaultNamespace.toBigInt(),
-      vaultIdentifier: vaultIdentifier.toBigInt(),
-      destinationIdentifier: destinationIdentifier.toBigInt(),
-      chainId: chainId ? chainId.toBigInt() : BigInt(0),
-      commitmentMapperPubKey: this.commitmentMapperPubKey.map((el) =>
-        el.toBigInt()
-      ),
+      vaultNamespace,
+      vaultIdentifier,
+      destinationIdentifier,
+      chainId,
+      commitmentMapperPubKey: mapArrayToBigInt(this.commitmentMapperPubKey),
       registryTreeRoot: registryTreeRoot,
-      requestIdentifier: requestIdentifier.toBigInt(),
-      proofIdentifier: proofIdentifier.toBigInt(),
-      statementValue: statementValue.toBigInt(),
-      accountsTreeValue: accountsTreeValue.toBigInt(),
-      statementComparator: statement && statement.comparator ? 1 : 0,
+      requestIdentifier: requestIdentifier,
+      proofIdentifier: proofIdentifier,
+      statementValue: statementValue,
+      accountsTreeValue: accountsTreeValue,
+      statementComparator,
+      sourceVerificationEnabled,
+      destinationVerificationEnabled,
+      randomBeacon,
     };
 
     return {
@@ -191,41 +273,33 @@ export class HydraS1Prover {
     source,
     destination,
     statement,
-    requestIdentifier,
+    requestIdentifier: requestIdentifierParam,
   }: UserParams) {
-    source.identifier = BigNumber.from(source.identifier);
-    source.secret = BigNumber.from(source.secret);
-    vault.secret = BigNumber.from(vault.secret);
-    vault.namespace = BigNumber.from(vault.namespace);
-    vault.identifier = BigNumber.from(vault.identifier);
-    const destinationIdentifier = destination
-      ? BigNumber.from(destination.identifier)
-      : BigNumber.from(0);
-    const destinationSecret = destination
-      ? BigNumber.from(destination.secret)
-      : BigNumber.from(0);
-    const destinationCommitmentReceipt: [
-      BigNumberish,
-      BigNumberish,
-      BigNumberish
-    ] = destination
-      ? destination.commitmentReceipt
-      : [BigNumber.from(0), BigNumber.from(0), BigNumber.from(0)];
+    const {
+      vaultSecret,
+      vaultIdentifier,
+      sourceIdentifier,
+      sourceSecret,
+      sourceCommitmentReceipt,
+      destinationIdentifier,
+      destinationSecret,
+      destinationCommitmentReceipt,
+      statementValue,
+      proofIdentifier,
+      statementComparator,
+      sourceVerificationEnabled,
+      destinationVerificationEnabled,
+    } = await this.format({
+      vault,
+      source,
+      destination,
+      statement,
+      requestIdentifier: requestIdentifierParam,
+    });
 
-    const statementValue = BigNumber.from(statement ? statement.value : 0);
-    const statementComparator = BigNumber.from(
-      statement ? statement.comparator : 0
-    );
-    requestIdentifier = BigNumber.from(requestIdentifier);
-
-    const zeroPaddedSourceIdentifier = ethers.utils.hexZeroPad(
-      source.identifier.toHexString(),
-      20
-    );
-
-    const accountsTree = statement ? statement.accountsTree : undefined;
-    if (statement && accountsTree) {
-      const registryTree = statement.registryTree;
+    const accountsTree = statement?.accountsTree;
+    if (accountsTree) {
+      const registryTree = statement?.registryTree;
       if (!registryTree) {
         throw new Error(
           "Registry tree should be defined when the accountsTree is defined"
@@ -246,97 +320,70 @@ export class HydraS1Prover {
         throw new Error("Invalid Accounts tree height");
 
       let sourceValue;
+      const zeroPaddedSourceIdentifier = ethers.utils.hexZeroPad(
+        ethers.utils.hexlify(BigNumber.from(sourceIdentifier)),
+        20
+      );
       try {
-        sourceValue = accountsTree.getValue(zeroPaddedSourceIdentifier);
+        sourceValue = accountsTree
+          .getValue(zeroPaddedSourceIdentifier)
+          .toBigInt();
       } catch (e) {
         throw new Error(
           `Could not find the source ${zeroPaddedSourceIdentifier} in the Accounts tree`
         );
       }
 
-      if (statementValue.gt(sourceValue)) {
+      if (statementValue > BigInt(sourceValue)) {
         throw new Error(
-          `Statement value ${statementValue.toHexString()} can't be superior to Source value`
+          `Statement value ${statementValue} can't be superior to Source value`
         );
       }
 
-      if (statementValue.lt(0)) {
-        throw new Error(
-          `Statement value ${statementValue.toHexString()} can't be negative`
-        );
+      if (statementValue < BigInt(0)) {
+        throw new Error(`Statement value ${statementValue} can't be negative`);
       }
 
-      if (statementComparator.eq(1) && !statementValue.eq(sourceValue)) {
+      if (statementComparator === BigInt(1) && statementValue !== sourceValue) {
         throw new Error(
-          `Statement value ${statementValue.toHexString()} must be equal with Source value when statementComparator == 1`
+          `Statement value ${statementValue} must be equal with Source value when statementComparator == 1`
         );
       }
     }
 
-    const isSourceCommitmentValid = await verifyCommitment(
-      source.identifier,
-      vault.secret,
-      source.secret,
-      source.commitmentReceipt,
-      this.commitmentMapperPubKey
-    );
-    if (!isSourceCommitmentValid)
-      throw new Error("Invalid source commitment receipt");
+    if (sourceVerificationEnabled) {
+      const isSourceCommitmentValid = await verifyCommitment(
+        sourceIdentifier,
+        vaultSecret,
+        sourceSecret,
+        sourceCommitmentReceipt,
+        this.commitmentMapperPubKey
+      );
+      if (!isSourceCommitmentValid)
+        throw new Error("Invalid source commitment receipt");
+    }
 
-    const isDestinationCommitmentValid = await verifyCommitment(
-      destinationIdentifier,
-      vault.secret,
-      destinationSecret,
-      destinationCommitmentReceipt,
-      this.commitmentMapperPubKey
-    );
-    if (!isDestinationCommitmentValid)
-      throw new Error("Invalid destination commitment receipt");
+    if (destinationVerificationEnabled) {
+      const isDestinationCommitmentValid = await verifyCommitment(
+        destinationIdentifier,
+        vaultSecret,
+        destinationSecret,
+        destinationCommitmentReceipt,
+        this.commitmentMapperPubKey
+      );
+      if (!isDestinationCommitmentValid)
+        throw new Error("Invalid destination commitment receipt");
+    }
 
-    const SnarkField = BigNumber.from(SNARK_FIELD);
-    if (requestIdentifier.gt(SnarkField)) {
+    const SnarkField = SNARK_FIELD.toBigInt();
+    if (proofIdentifier > SnarkField) {
       throw new Error(
-        "RequestIdentifier overflow the snark field, please use request Identifier inside the snark field"
+        "ProodIdentifier overflow the snark field, please use request Identifier inside the snark field"
       );
     }
-    if (source.identifier.gt(SnarkField)) {
+    if (vaultIdentifier > SnarkField) {
       throw new Error(
         "Source identifier overflow the snark field, please use source identifier inside the snark field"
-      );
-    }
-    if (source.secret.gt(SnarkField)) {
-      throw new Error(
-        "Source secret overflow the snark field, please use source secret inside the snark field"
-      );
-    }
-    if (destinationIdentifier.gt(SnarkField)) {
-      throw new Error(
-        "Destination overflow the snark field, please use destination inside the snark field"
-      );
-    }
-    if (destinationSecret.gt(SnarkField)) {
-      throw new Error(
-        "Destination secret overflow the snark field, please use destination secret inside the snark field"
-      );
-    }
-    if (vault.namespace.gt(SnarkField)) {
-      throw new Error(
-        "Vault namespace overflow the snark field, please use vault namespace inside the snark field"
-      );
-    }
-    if (vault.identifier.gt(SnarkField)) {
-      throw new Error(
-        "Vault identifier overflow the snark field, please use vault identifier inside the snark field"
-      );
-    }
-    if (vault.secret.gt(SnarkField)) {
-      throw new Error(
-        "Vault secret overflow the snark field, please use vault secret inside the snark field"
-      );
-    }
-    if (statementValue.gt(SnarkField)) {
-      throw new Error(
-        "Statement value overflow the snark field, please use statement value inside the snark field"
       );
     }
   }
@@ -347,6 +394,7 @@ export class HydraS1Prover {
     destination,
     statement,
     requestIdentifier,
+    randomBeacon,
   }: UserParams): Promise<SnarkProof> {
     await this.userParamsValidation({
       vault,
@@ -354,6 +402,7 @@ export class HydraS1Prover {
       destination,
       statement,
       requestIdentifier,
+      randomBeacon,
     });
 
     const { privateInputs, publicInputs } = await this.generateInputs({
@@ -362,6 +411,7 @@ export class HydraS1Prover {
       destination,
       statement,
       requestIdentifier,
+      randomBeacon,
     });
 
     let files;

@@ -1,4 +1,8 @@
-import { VaultInput } from "./../package/src/prover/hydra-s1-prover";
+import {
+  DestinationInput,
+  SourceInput,
+  VaultInput,
+} from "./../package/src/prover/hydra-s1-prover";
 import { BigNumber } from "ethers";
 import hre from "hardhat";
 import path from "path";
@@ -36,8 +40,8 @@ describe("Hydra S1 Circuits", () => {
   let merkleTreeData2: MerkleTreeData;
   let prover: HydraS1Prover;
   let chainId: number;
-  let source: HydraS1Account;
-  let destination: HydraS1Account;
+  let source: SourceInput;
+  let destination: DestinationInput;
   let sourceValue: BigNumber;
   let vault: VaultInput;
 
@@ -50,7 +54,6 @@ describe("Hydra S1 Circuits", () => {
     vault = {
       secret: vaultSecret,
       namespace: vaultNamespace,
-      identifier: poseidon([vaultSecret, vaultNamespace]).toHexString(),
     };
 
     accounts = [];
@@ -113,16 +116,34 @@ describe("Hydra S1 Circuits", () => {
 
     chainId = parseInt(await hre.getChainId());
 
-    source = accounts[0];
-    destination = accounts[4];
+    source = {
+      ...accounts[0],
+      verificationEnabled: true,
+    };
+    destination = {
+      ...accounts[4],
+      verificationEnabled: true,
+      chainId,
+    };
 
     sourceValue = BigNumber.from(
       merkleTreeData1[BigNumber.from(source.identifier).toHexString()]
     );
   });
 
-  describe("Generating proof of a Vault ownership", async () => {
+  describe("Generating proof of a statement in the vault", async () => {
     it("Snark proof of vault identifier for a specific vault namespace", async () => {
+      const { privateInputs, publicInputs } = await prover.generateInputs({
+        vault,
+      });
+
+      inputs = { ...privateInputs, ...publicInputs };
+
+      const w = await circuitTester.calculateWitness(inputs, true);
+      await circuitTester.checkConstraints(w);
+    });
+
+    it("Snark proof of vault identifier for a specific vault namespace with source verification", async () => {
       const { privateInputs, publicInputs } = await prover.generateInputs({
         vault,
         source,
@@ -133,17 +154,53 @@ describe("Hydra S1 Circuits", () => {
       const w = await circuitTester.calculateWitness(inputs, true);
       await circuitTester.checkConstraints(w);
     });
-  });
 
-  describe("Generating proof of a statement in the vault", async () => {
-    it("Snark proof of simple value in a merkleTree with simple proofIdentifier", async () => {
+    it("Snark proof of vault identifier for a specific vault namespace with an unverified destination", async () => {
       const { privateInputs, publicInputs } = await prover.generateInputs({
         vault,
         source,
         destination: {
-          ...destination,
+          identifier: destination.identifier,
+          verificationEnabled: false,
           chainId,
         },
+      });
+
+      inputs = { ...privateInputs, ...publicInputs };
+
+      const w = await circuitTester.calculateWitness(inputs, true);
+      await circuitTester.checkConstraints(w);
+    });
+
+    it("Snark proof of simple value in a merkleTree with simple proofIdentifier without destination verification", async () => {
+      const { privateInputs, publicInputs } = await prover.generateInputs({
+        vault,
+        source,
+        destination: {
+          identifier: destination.identifier,
+          verificationEnabled: false,
+          chainId,
+        },
+        statement: {
+          value: sourceValue,
+          accountsTree: accountsTree1,
+          registryTree,
+          comparator: 0,
+        },
+        requestIdentifier,
+      });
+
+      inputs = { ...privateInputs, ...publicInputs };
+
+      const w = await circuitTester.calculateWitness(inputs, true);
+      await circuitTester.checkConstraints(w);
+    });
+
+    it("Snark proof of simple value in a merkleTree with simple proofIdentifier", async () => {
+      const { privateInputs, publicInputs } = await prover.generateInputs({
+        vault,
+        source,
+        destination,
         statement: {
           value: sourceValue,
           accountsTree: accountsTree1,
@@ -179,10 +236,7 @@ describe("Hydra S1 Circuits", () => {
       const { privateInputs, publicInputs } = await prover2.generateInputs({
         vault,
         source,
-        destination: {
-          ...destination,
-          chainId: chainId,
-        },
+        destination,
         statement: {
           value: BigNumber.from(1),
           registryTree: registryTree3,
@@ -219,10 +273,7 @@ describe("Hydra S1 Circuits", () => {
       const { privateInputs, publicInputs } = await prover2.generateInputs({
         vault,
         source,
-        destination: {
-          ...destination,
-          chainId: chainId,
-        },
+        destination,
         statement: {
           value: BigNumber.from(1),
           registryTree: registryTree3,
@@ -508,7 +559,7 @@ describe("Hydra S1 Circuits", () => {
           ...inputs,
           ...{
             statementValue: BigNumber.from(5).toBigInt(),
-            statementComparator: 0,
+            statementComparator: BigInt(0),
           }, // the good one is value: 4
         },
         "Error: Assert Failed.\nError in template ForceEqualIfEnabled"
@@ -533,7 +584,7 @@ describe("Hydra S1 Circuits", () => {
           ...inputs,
           ...{
             statementValue: BigNumber.from(-5).toBigInt(),
-            statementComparator: 0,
+            statementComparator: BigInt(0),
           }, // the good one is value: 4
         },
         "Error: Assert Failed.\nError in template ForceEqualIfEnabled"
@@ -546,7 +597,7 @@ describe("Hydra S1 Circuits", () => {
         {
           ...inputs,
           ...{
-            statementComparator: 1,
+            statementComparator: BigInt(1),
             statementValue: BigNumber.from(3).toBigInt(),
           }, // the good one is value: 4
         },
