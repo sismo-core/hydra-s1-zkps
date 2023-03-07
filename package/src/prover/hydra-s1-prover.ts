@@ -266,7 +266,7 @@ export class HydraS1Prover {
         );
       }
 
-      if (statementComparator && !statementValue.eq(sourceValue)) {
+      if (statementComparator.eq(1) && !statementValue.eq(sourceValue)) {
         throw new Error(
           `Statement value ${statementValue.toHexString()} must be equal with Source value when statementComparator == 1`
         );
