@@ -22,12 +22,11 @@ export type PublicInputs = {
   proofIdentifier: BigInt;
   destinationIdentifier: BigInt;
   statementValue: BigInt;
-  chainId: BigInt;
   accountsTreeValue: BigInt;
   statementComparator: BigInt;
   sourceVerificationEnabled: BigInt;
   destinationVerificationEnabled: BigInt;
-  randomBeacon: BigInt;
+  extraData: BigInt;
 };
 
 export type Inputs = {

@@ -38,7 +38,6 @@ export type StatementInput = {
 export type SourceInput = HydraS1Account & { verificationEnabled: boolean };
 export type DestinationInput = Partial<HydraS1Account> & {
   verificationEnabled: boolean;
-  chainId: BigNumberish;
 };
 
 export type UserParams = {
@@ -47,7 +46,7 @@ export type UserParams = {
   destination?: DestinationInput;
   statement?: StatementInput;
   requestIdentifier?: BigNumberish;
-  randomBeacon?: BigNumberish;
+  extraData?: BigNumberish;
 };
 
 export type formattedUserParams = {
@@ -62,12 +61,11 @@ export type formattedUserParams = {
   destinationCommitmentReceipt: BigInt[];
   statementValue: BigInt;
   requestIdentifier: BigInt;
-  chainId: BigInt;
   proofIdentifier: BigInt;
   statementComparator: BigInt;
   sourceVerificationEnabled: BigInt;
   destinationVerificationEnabled: BigInt;
-  randomBeacon: BigInt;
+  extraData: BigInt;
 };
 
 export class HydraS1Prover {
@@ -88,7 +86,7 @@ export class HydraS1Prover {
     destination,
     statement,
     requestIdentifier: requestIdentifierInput,
-    randomBeacon: randomBeaconInput,
+    extraData: extraDataInput,
   }: UserParams): Promise<formattedUserParams> {
     const poseidon = await buildPoseidon();
     const vaultSecret = BigNumber.from(vault.secret).toBigInt();
@@ -121,7 +119,6 @@ export class HydraS1Prover {
 
     const statementValue = BigNumber.from(statement?.value ?? 0).toBigInt();
     // requestIdentifier = BigNumber.from(requestIdentifier ?? 0);
-    const chainId = BigNumber.from(destination?.chainId ?? 0).toBigInt();
 
     const statementComparator =
       statement?.comparator === 1 ? BigInt(1) : BigInt(0);
@@ -131,7 +128,7 @@ export class HydraS1Prover {
     const destinationVerificationEnabled =
       destination?.verificationEnabled === true ? BigInt(1) : BigInt(0);
 
-    const randomBeacon = BigNumber.from(randomBeaconInput ?? 0).toBigInt();
+    const extraData = BigNumber.from(extraDataInput ?? 0).toBigInt();
 
     return {
       vaultSecret,
@@ -145,12 +142,11 @@ export class HydraS1Prover {
       destinationCommitmentReceipt,
       requestIdentifier,
       statementValue,
-      chainId,
       proofIdentifier,
       statementComparator,
       sourceVerificationEnabled,
       destinationVerificationEnabled,
-      randomBeacon,
+      extraData: extraData,
     };
   }
 
@@ -160,7 +156,7 @@ export class HydraS1Prover {
     destination,
     statement,
     requestIdentifier: requestIdentifierParam,
-    randomBeacon: randomBeaconInput,
+    extraData: extraDataInput,
   }: UserParams): Promise<Inputs> {
     const {
       vaultSecret,
@@ -174,19 +170,18 @@ export class HydraS1Prover {
       destinationCommitmentReceipt,
       requestIdentifier,
       statementValue,
-      chainId,
       proofIdentifier,
       statementComparator,
       sourceVerificationEnabled,
       destinationVerificationEnabled,
-      randomBeacon,
+      extraData: extraData,
     } = await this.format({
       vault,
       source,
       destination,
       statement,
       requestIdentifier: requestIdentifierParam,
-      randomBeacon: randomBeaconInput,
+      extraData: extraDataInput,
     });
 
     const accountsTree = statement?.accountsTree;
@@ -249,7 +244,6 @@ export class HydraS1Prover {
       vaultNamespace,
       vaultIdentifier,
       destinationIdentifier,
-      chainId,
       commitmentMapperPubKey: mapArrayToBigInt(this.commitmentMapperPubKey),
       registryTreeRoot: registryTreeRoot,
       requestIdentifier: requestIdentifier,
@@ -259,7 +253,7 @@ export class HydraS1Prover {
       statementComparator,
       sourceVerificationEnabled,
       destinationVerificationEnabled,
-      randomBeacon,
+      extraData,
     };
 
     return {
@@ -394,7 +388,7 @@ export class HydraS1Prover {
     destination,
     statement,
     requestIdentifier,
-    randomBeacon,
+    extraData,
   }: UserParams): Promise<SnarkProof> {
     await this.userParamsValidation({
       vault,
@@ -402,7 +396,7 @@ export class HydraS1Prover {
       destination,
       statement,
       requestIdentifier,
-      randomBeacon,
+      extraData,
     });
 
     const { privateInputs, publicInputs } = await this.generateInputs({
@@ -411,7 +405,7 @@ export class HydraS1Prover {
       destination,
       statement,
       requestIdentifier,
-      randomBeacon,
+      extraData,
     });
 
     let files;

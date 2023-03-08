@@ -39,7 +39,7 @@ describe("Hydra S1 Circuits", () => {
   let accountsTree2: KVMerkleTree;
   let merkleTreeData2: MerkleTreeData;
   let prover: HydraS1Prover;
-  let chainId: number;
+  let extraData: string;
   let source: SourceInput;
   let destination: DestinationInput;
   let sourceValue: BigNumber;
@@ -114,7 +114,7 @@ describe("Hydra S1 Circuits", () => {
 
     prover = new HydraS1Prover(await commitmentMapperTester.getPubKey());
 
-    chainId = parseInt(await hre.getChainId());
+    extraData = "0x123345";
 
     source = {
       ...accounts[0],
@@ -123,7 +123,6 @@ describe("Hydra S1 Circuits", () => {
     destination = {
       ...accounts[4],
       verificationEnabled: true,
-      chainId,
     };
 
     sourceValue = BigNumber.from(
@@ -135,6 +134,18 @@ describe("Hydra S1 Circuits", () => {
     it("Snark proof of vault identifier for a specific vault namespace", async () => {
       const { privateInputs, publicInputs } = await prover.generateInputs({
         vault,
+      });
+
+      inputs = { ...privateInputs, ...publicInputs };
+
+      const w = await circuitTester.calculateWitness(inputs, true);
+      await circuitTester.checkConstraints(w);
+    });
+
+    it("Snark proof of vault identifier with some extraData", async () => {
+      const { privateInputs, publicInputs } = await prover.generateInputs({
+        vault,
+        extraData,
       });
 
       inputs = { ...privateInputs, ...publicInputs };
@@ -162,7 +173,6 @@ describe("Hydra S1 Circuits", () => {
         destination: {
           identifier: destination.identifier,
           verificationEnabled: false,
-          chainId,
         },
       });
 
@@ -179,7 +189,6 @@ describe("Hydra S1 Circuits", () => {
         destination: {
           identifier: destination.identifier,
           verificationEnabled: false,
-          chainId,
         },
         statement: {
           value: sourceValue,

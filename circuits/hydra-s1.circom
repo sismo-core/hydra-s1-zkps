@@ -30,7 +30,7 @@ template hydraS1(registryTreeHeight, accountsTreeHeight) {
 
   // Public inputs
   signal input destinationIdentifier;
-  signal input chainId;
+  signal input extraData;
   signal input commitmentMapperPubKey[2];
   signal input registryTreeRoot;
   signal input requestIdentifier;
@@ -42,7 +42,6 @@ template hydraS1(registryTreeHeight, accountsTreeHeight) {
   signal input vaultNamespace;
   signal input sourceVerificationEnabled;
   signal input destinationVerificationEnabled;
-  signal input randomBeacon;
 
   // Verify the source account went through the Hydra Delegated Proof of Ownership
   // That means the user own the source address
@@ -165,10 +164,8 @@ template hydraS1(registryTreeHeight, accountsTreeHeight) {
   (vaultIdentifierHasher.out - vaultIdentifier) * (1 - vaultNamespaceIsZero.out) === 0;
 
   // Square serve to avoid removing by the compilator optimizer
-  signal chainIdSquare;
-  chainIdSquare <== chainId * chainId;
-  signal randomBeaconSquare;
-  randomBeaconSquare <== randomBeacon * randomBeacon;
+  signal extraDataSquare;
+  extraDataSquare <== extraData * extraData;
 }
 
-component main {public [commitmentMapperPubKey, registryTreeRoot, vaultNamespace, vaultIdentifier, requestIdentifier, proofIdentifier, destinationIdentifier, statementValue, chainId, accountsTreeValue, statementComparator, sourceVerificationEnabled, destinationVerificationEnabled, randomBeacon]} = hydraS1(20,20);
+component main {public [commitmentMapperPubKey, registryTreeRoot, vaultNamespace, vaultIdentifier, requestIdentifier, proofIdentifier, destinationIdentifier, statementValue, extraData, accountsTreeValue, statementComparator, sourceVerificationEnabled, destinationVerificationEnabled]} = hydraS1(20,20);
