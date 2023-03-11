@@ -28,17 +28,17 @@
 
 Hydra-S1 is a Zero-Knowledge Proving Scheme used by [Hydra S1 attesters](https://github.com/sismo-core/sismo-protocol/tree/main/contracts/attesters/hydra-s1) of the Sismo Protocol.
 
-Hydra-S1 generates ZK Proofs from a merkle tree storing groups of accounts with values (e.g group of ENS DAO voters where the account value is the number of votes). 
+Hydra-S1 generates ZK Proofs from a Merkle tree storing groups of accounts with values (e.g group of ENS DAO voters where the account value is the number of votes). 
 
 Hydra-S1 enables users to prove from these groups: 
-- Ownerships: They own two accounts, a source account and a destination account. (via Hydra Delegate Proof of Ownership)
+- Ownerships: They own two accounts, a source account, and a destination account. (via Hydra Delegate Proof of Ownership)
 - Account inclusion: Their source account is part of a group (e.g group ENS DAO voters)
 - Account value: Their source account holds a specific value (e.g number of votes in the group of ENS DAO voters) 
 - Nullifier Generation: They computed a nullifier from an externalNullifier. The nullifier is deterministically generated from their source account and the externalNullifier. It can be stored by proof verifiers to only accept one ZK Proof per account per externalNullifier.
   
 Please make sure to read our documentation:
 -  [Hydra-S1 general documentation](https://hydra-s1.docs.sismo.io)
--  [Registry Tree](https://registry-tree.docs.sismo.io) The custom merkle tree which stores the groups of accounts.
+-  [Registry Tree](https://registry-tree.docs.sismo.io) The custom Merkle tree which stores the groups of accounts.
 - [Hydra Proof of Ownership](https://hydra.docs.sismo.io) via the [Commitment Mapper](https://commitment-mapper.docs.sismo.io)
 
 ## Circuits and Package
@@ -47,7 +47,7 @@ Hydra-S1 Proving Scheme was developed using [circom](https://github.com/iden3/ci
 
 It outputs an off-chain prover and verifiers (both on-chain and off-chain).
 
-Theses implementations of prover and verifiers are in the [@sismo-core/hydra-s1](./package) npm package.
+These implementations of prover and verifiers are in the [@sismo-core/hydra-s1](./package) npm package.
 
 ```sh
 $ yarn add @sismo-core/hydra-s1
@@ -78,7 +78,7 @@ Distributed under the MIT License.
 
 ## Contribute
 
-Please, feel free to open issues, PRs or simply provide feedback!
+Please, feel free to open issues, pull requests, or simply provide feedback!
 
 ## Contact
 
