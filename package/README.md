@@ -53,7 +53,7 @@ const prover = new HydraS1Prover(
 | commitmentMapperPubKey | EddsaPublicKey | Pub key of the CommitmentMapper |
 
 
-To generate the proof, we need to provide a .wasm and a .zkey to the witness calculator. For CommonJS modules we add theses files directly in the package and we resolve the path. For ES module we can't do that, that's why we choose to host files on an S3. 
+To generate the proof, we need to provide a .wasm and a .zkey to the witness calculator. For CommonJS modules we add these files directly in the package and we resolve the path. For ES module we can't do that, that's why we choose to host files on an S3. 
 
 If this solution doesn't suite you or if you want to optimize the download time, you can override S3 paths by adding a third params in the HydraS1Prover constructor and host files wherever you want.
 
